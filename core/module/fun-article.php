@@ -36,19 +36,21 @@ add_filter('post_thumbnail_size', 'boxmoe_article_thumbnail_size');
 
 // 文章缩略图逻辑--------------------------boxmoe.com--------------------------
 function boxmoe_article_thumbnail_src() {
-    // 始终使用随机图片
+    // 随机图片
     if(get_boxmoe('boxmoe_article_thumbnail_random_api')){
         $src = get_boxmoe('boxmoe_article_thumbnail_random_api_url');
-        return $src ?: boxmoe_theme_url().'/assets/images/default-thumbnail.jpg';
+        $src = $src ?: boxmoe_theme_url().'/assets/images/default-thumbnail.jpg';
     }else{
         $random_images = glob(get_template_directory().'/assets/images/random/*.{jpg,jpeg,png,gif,webp}', GLOB_BRACE);   
         if (!empty($random_images)) {
-            $random_key = array_rand($random_images);
-            return str_replace(get_template_directory(), get_template_directory_uri(), $random_images[$random_key]);
+            shuffle($random_images);
+            $src = str_replace(get_template_directory(), get_template_directory_uri(), $random_images[0]);
         } else {
-            return boxmoe_theme_url().'/assets/images/default-thumbnail.jpg';
+            $src = boxmoe_theme_url().'/assets/images/default-thumbnail.jpg';
         }
     }
+    // 每次调用附加不同随机字符串，防止浏览器/缓存层复用同一 URL
+    return $src . '?v=' . boxmoe_random_string(6);
 }
 
 //文章点击数换算K--------------------------boxmoe.com--------------------------
