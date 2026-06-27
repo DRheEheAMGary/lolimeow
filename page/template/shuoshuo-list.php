@@ -36,92 +36,50 @@ $shuoshuo_query = new WP_Query($args);
     <?php endif; ?>
 
     <?php if ($shuoshuo_query->have_posts()) : ?>
-    <div class="blog-timeline">
-        <?php 
-        $index = 0;
-        while ($shuoshuo_query->have_posts()) : $shuoshuo_query->the_post(); 
-            $index++;
-        ?>
-        <div class="timeline-item">
-            <div class="timeline-card <?php echo boxmoe_border_setting(); ?> shuoshuo-card">
-                <!-- 头部 -->
-                <div class="timeline-card-header">
-                    <div class="timeline-avatar">
-                        <img src="<?php boxmoe_lazy_load_images(); ?>" 
-                             data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
-                             alt="avatar" class="avatar lazy">
-                    </div>
-                    <div class="timeline-meta">
-                        <div class="timeline-meta-top">
-                            <span class="timeline-author">
-                                <i class="fa fa-at"></i><?php the_author(); ?>
-                            </span>
-                            <span class="timeline-time">
-                                <i class="fa fa-clock-o"></i>
-                                <?php 
-                                $post_time = get_the_time('U');
-                                if ((current_time('timestamp') - $post_time) < 365 * 86400) {
-                                    echo get_the_time('m-d H:i');
-                                } else {
-                                    echo get_the_time('Y-m-d');
-                                }
-                                ?>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 正文内容：说说直出内容 -->
-                <div class="timeline-card-body">
-                    <div class="shuoshuo-content">
-                        <?php the_content(); ?>
-                    </div>
-                </div>
-
-                <!-- 底部操作栏 -->
-                <div class="timeline-card-footer">
-                    <div class="timeline-actions">
-                        <?php if(get_boxmoe('boxmoe_like_switch')): ?>
-                        <button class="action-btn like-btn" title="点赞" data-post-id="<?php the_ID(); ?>">
-                            <i class="fa fa-thumbs-up"></i>
-                            <span class="like-count"><?php echo getPostLikes(get_the_ID()); ?></span>
-                        </button>
-                        <?php endif; ?>
-                        <a href="<?php the_permalink(); ?>#comments-container" class="action-btn comment-btn" title="评论">
-                            <i class="fa fa-comments-o"></i>
-                            <span><?php echo get_comments_number(); ?></span>
-                        </a>
-                        <span class="action-btn view-stat" title="阅读">
-                            <i class="fa fa-street-view"></i>
-                            <span><?php echo getPostViews(get_the_ID()); ?></span>
-                        </span>
-                        <?php if(is_user_logged_in()): ?>
-                        <button class="action-btn favorite-btn <?php echo isPostFavorited(get_the_ID()) ? 'favorited' : ''; ?>" title="收藏" data-post-id="<?php the_ID(); ?>">
-                            <i class="fa fa-star"></i>
-                            <span class="favorite-text"><?php echo isPostFavorited(get_the_ID()) ? '已收藏' : '收藏'; ?></span>
-                        </button>
-                        <?php endif; ?>
-                        <a href="<?php the_permalink(); ?>" class="action-btn read-btn" title="查看详情">
-                            <i class="fa fa-arrow-right"></i>
-                            <span>详情</span>
-                        </a>
-                    </div>
-                    <?php 
-                    $tags = get_the_tags();
-                    if ($tags): ?>
-                    <div class="timeline-tags">
+        <?php while ($shuoshuo_query->have_posts()) : $shuoshuo_query->the_post(); ?>
+        <article class="post-list list-one row blog-border shuoshuo-post">
+            <div class="post-list-avatar" style="flex:0 0 auto;width:auto;padding:15px 0 15px 10px;">
+                <img src="<?php boxmoe_lazy_load_images(); ?>" 
+                     data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
+                     alt="avatar" class="avatar lazy">
+            </div>
+            <div class="post-list-content" style="padding:15px 10px 15px 5px;">
+                <div class="post-meta-info" style="margin-bottom:8px;">
+                    <span class="list-post-author" style="font-size:0.85rem;font-weight:600;">
+                        <i class="fa fa-at"></i><?php the_author(); ?>
+                        <span class="dot"></span>
                         <?php 
-                        foreach ($tags as $tag) {
-                            echo '<a href="' . esc_url(get_tag_link($tag->term_id)) . '" class="tag-badge">#' . esc_html($tag->name) . '</a> ';
+                        $post_time = get_the_time('U');
+                        if ((current_time('timestamp') - $post_time) < 365 * 86400) {
+                            echo get_the_time('m-d H:i');
+                        } else {
+                            echo get_the_time('Y-m-d');
                         }
                         ?>
-                    </div>
+                    </span>
+                </div>
+                <div class="shuoshuo-content" style="margin-bottom:10px;">
+                    <?php the_content(); ?>
+                </div>
+                <div class="post-meta" style="margin:0;padding:8px 0 0;border-top:1px dashed #eee;gap:12px;display:flex;flex-wrap:wrap;align-items:center;">
+                    <?php if(get_boxmoe('boxmoe_like_switch')): ?>
+                    <span style="font-size:0.75rem;color:var(--bs-gray-700);">
+                        <i class="fa fa-thumbs-up" style="margin-right:3px;"></i><?php echo getPostLikes(get_the_ID()); ?>
+                    </span>
                     <?php endif; ?>
+                    <a href="<?php the_permalink(); ?>#comments-container" style="font-size:0.75rem;color:var(--bs-gray-700);text-decoration:none;">
+                        <i class="fa fa-comments-o" style="margin-right:3px;"></i><?php echo get_comments_number(); ?>
+                    </a>
+                    <span style="font-size:0.75rem;color:var(--bs-gray-700);">
+                        <i class="fa fa-street-view" style="margin-right:3px;"></i><?php echo getPostViews(get_the_ID()); ?>
+                    </span>
+                    <a href="<?php the_permalink(); ?>" style="font-size:0.75rem;color:#D87CFF;text-decoration:none;margin-left:auto;">
+                        详情 <i class="fa fa-arrow-right"></i>
+                    </a>
                 </div>
             </div>
-        </div>
+        </article>
         <?php endwhile; ?>
-    </div>
 
     <!-- 分页 -->
     <div class="col-lg-12 col-md-12 pagenav">
