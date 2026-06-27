@@ -378,7 +378,6 @@ hr:not([size]) {height:1px}
 .boxmoe_cat_items .cat_list_item:nth-child(5n+3) {animation-delay:0.3s;}
 .boxmoe_cat_items .cat_list_item:nth-child(5n+4) {animation-delay:0.4s;}
 .boxmoe_cat_items .cat_list_item:nth-child(5n+5) {animation-delay:0.5s;}
-@keyframes fadeInUp {from {opacity:0;transform:translateY(20px);}to {opacity:1;transform:translateY(0);}}
 .boxmoe_cat_items .list_item {overflow:hidden;}
 .boxmoe_cat_items .prt-wrap {display:table;width:100%;}
 .boxmoe_cat_items  .list_item .prt-right-column {height:60px;border:2px solid #102226;border-radius:15px;padding:0 86px 0 25px;font-size:22px;font-weight:700;line-height:55px;position:relative;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;transition:all .3s ease;display:block;}
@@ -953,11 +952,12 @@ footer .logo {height:35px;}
 
 /* 时间轴条目 */
 .timeline-item {position: relative;display: flex;align-items: flex-start;margin-bottom: 40px;opacity: 0;animation: fadeInUp 0.6s ease forwards;}
-.timeline-item:nth-child(1) {animation-delay: 0.1s;}
-.timeline-item:nth-child(2) {animation-delay: 0.2s;}
-.timeline-item:nth-child(3) {animation-delay: 0.3s;}
-.timeline-item:nth-child(4) {animation-delay: 0.4s;}
-.timeline-item:nth-child(5) {animation-delay: 0.5s;}
+/* .timeline-line 是第1个子元素，timeline-item 从第2个开始 */
+.timeline-item:nth-child(2) {animation-delay: 0.1s;}
+.timeline-item:nth-child(3) {animation-delay: 0.2s;}
+.timeline-item:nth-child(4) {animation-delay: 0.3s;}
+.timeline-item:nth-child(5) {animation-delay: 0.4s;}
+.timeline-item:nth-child(6) {animation-delay: 0.5s;}
 
 /* 左侧条目 */
 .timeline-left {justify-content: flex-start;padding-right: calc(50% + 30px);}

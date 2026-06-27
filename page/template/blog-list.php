@@ -20,7 +20,7 @@ $shuoshuo_slug = 'shuoshuo';
             // 判断是否为说说类型
             $is_shuoshuo = has_category($shuoshuo_slug);
         ?>
-        <div class="timeline-item <?php echo ($index % 2 == 1) ? 'timeline-left' : 'timeline-right'; ?> fadein-bottom">
+        <div class="timeline-item <?php echo ($index % 2 == 1) ? 'timeline-left' : 'timeline-right'; ?>">
             <!-- 时间指示器 -->
             <div class="timeline-dot">
                 <div class="dot-inner"></div>

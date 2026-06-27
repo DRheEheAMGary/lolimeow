@@ -43,7 +43,7 @@ $shuoshuo_query = new WP_Query($args);
         while ($shuoshuo_query->have_posts()) : $shuoshuo_query->the_post(); 
             $index++;
         ?>
-        <div class="timeline-item <?php echo ($index % 2 == 1) ? 'timeline-left' : 'timeline-right'; ?> fadein-bottom">
+        <div class="timeline-item <?php echo ($index % 2 == 1) ? 'timeline-left' : 'timeline-right'; ?>">
             <div class="timeline-dot">
                 <div class="dot-inner"></div>
             </div>
