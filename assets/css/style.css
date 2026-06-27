@@ -1017,6 +1017,22 @@ footer .logo {height:35px;}
 .timeline-tags .tag-badge {display: inline-block;padding: 2px 10px;background: #f0e6ff;color: #8b5cf6;border-radius: 12px;font-size: 0.72rem;transition: all 0.2s ease;text-decoration: none;}
 .timeline-tags .tag-badge:hover {background: #D87CFF;color: #fff;}
 
+/* ====== 发布说说话框 ====== */
+.shuoshuo-publisher {background: var(--bs-white);border-radius: 12px;overflow: hidden;}
+.shuoshuo-publisher .blog-border {padding: 16px 20px;}
+.shuoshuo-publisher .publisher-body {display: flex;gap: 12px;align-items: flex-start;}
+.shuoshuo-publisher .publisher-avatar {flex-shrink: 0;}
+.shuoshuo-publisher .publisher-avatar .avatar {width: 40px;height: 40px;border-radius: 50%;object-fit: cover;}
+.shuoshuo-publisher .publisher-input-wrap {flex: 1;min-width: 0;}
+.shuoshuo-publisher .publisher-textarea {resize: none;border: none;box-shadow: none;background: #f8f9fa;border-radius: 8px;font-size: 0.9rem;padding: 10px 14px;line-height: 1.6;transition: background 0.2s;}
+.shuoshuo-publisher .publisher-textarea:focus {background: #f0f0f0;outline: none;}
+.shuoshuo-publisher .publisher-footer {display: flex;align-items: center;justify-content: flex-end;margin-top: 10px;gap: 12px;}
+.shuoshuo-publisher .publisher-hint .char-count {font-size: 0.75rem;color: var(--bs-gray-500);}
+.shuoshuo-publisher .publisher-btn {border-radius: 20px;padding: 5px 20px;font-size: 0.85rem;}
+[data-bs-theme="dark"] .shuoshuo-publisher {background: #1a1a2e;}
+[data-bs-theme="dark"] .shuoshuo-publisher .publisher-textarea {background: #2a2a3e;color: #eee;}
+[data-bs-theme="dark"] .shuoshuo-publisher .publisher-textarea:focus {background: #333;}
+
 /* 淡入动画 */
 @keyframes fadeInUp {
     from {opacity: 0;transform: translateY(30px);}

@@ -413,3 +413,46 @@ function boxmoe_delete_favorite() {
 }
 
 add_action('wp_ajax_delete_favorite', 'boxmoe_delete_favorite');
+
+// 前端发布说说
+function boxmoe_submit_shuoshuo() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error(['message' => '请先登录']);
+    }
+    if (!check_ajax_referer('shuoshuo_nonce', 'security', false)) {
+        wp_send_json_error(['message' => '安全验证失败，请刷新页面重试']);
+    }
+    $content = isset($_POST['content']) ? wp_kses_post(trim($_POST['content'])) : '';
+    if (empty($content)) {
+        wp_send_json_error(['message' => '内容不能为空']);
+    }
+    if (mb_strlen(strip_tags($content)) > 5000) {
+        wp_send_json_error(['message' => '内容不能超过5000字']);
+    }
+    // 频率限制：30秒内只能发一条
+    $user_id = get_current_user_id();
+    $last_time = get_user_meta($user_id, '_last_shuoshuo_time', true);
+    if ($last_time && (time() - $last_time) < 30) {
+        wp_send_json_error(['message' => '发送太快了，请稍后再试']);
+    }
+    $shuoshuo_cat = get_category_by_slug('shuoshuo');
+    if (!$shuoshuo_cat) {
+        wp_send_json_error(['message' => '说说分类不存在，请先创建slug为shuoshuo的分类']);
+    }
+    $title = wp_trim_words(strip_tags($content), 8, '...');
+    if (empty($title)) $title = '无标题说说';
+    $post_data = array(
+        'post_title'   => $title,
+        'post_content' => $content,
+        'post_status'  => 'publish',
+        'post_author'  => $user_id,
+        'post_category' => array($shuoshuo_cat->term_id),
+    );
+    $post_id = wp_insert_post($post_data, true);
+    if (is_wp_error($post_id)) {
+        wp_send_json_error(['message' => '发布失败：' . $post_id->get_error_message()]);
+    }
+    update_user_meta($user_id, '_last_shuoshuo_time', time());
+    wp_send_json_success(['message' => '发布成功！', 'post_id' => $post_id]);
+}
+add_action('wp_ajax_submit_shuoshuo', 'boxmoe_submit_shuoshuo');
