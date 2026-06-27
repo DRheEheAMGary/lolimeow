@@ -56,7 +56,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                     <div class="mobile-logged-user-wrapper d-block d-lg-none">
                         <a href="<?php echo boxmoe_user_center_link_page(); ?>" class="user-info-wrap d-flex align-items-center">
                             <div class="user-avatar">
-                                <img src="<?php boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 100); ?>" alt="avatar" class="img-fluid rounded-3 lazy">
+                                <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 100); ?>" alt="avatar" class="img-fluid rounded-3 lazy">
                             </div>
                             <div class="user-info">
                                 <div class="user-name"><?php echo get_the_author_meta('display_name', get_current_user_id()); ?></div>
@@ -108,7 +108,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                                 <div class="user-info-wrap d-flex align-items-center dropdown">
                                     <a href="<?php echo boxmoe_user_center_link_page(); ?>" class="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
                                         <div class="user-avatar">
-                                            <img src="<?php boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 100); ?>" alt="avatar" class="img-fluid rounded-3 lazy">
+                                            <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 100); ?>" alt="avatar" class="img-fluid rounded-3 lazy">
                                         </div>
                                         <div class="user-info">
                                             <div class="user-name"><?php echo get_the_author_meta('display_name', get_current_user_id()); ?></div>
@@ -180,7 +180,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                         <div class="post-list-img">
                             <figure class="mb-4 mb-lg-0 zoom-img">
                                 <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" title="<?php the_title(); ?>">
-                                    <img src="<?php boxmoe_lazy_load_images(); ?>" 
+                                    <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
                                          data-src="<?php echo boxmoe_article_thumbnail_src(); ?>" 
                                          alt="<?php the_title(); ?>" class="img-fluid rounded-3 lazy">
                                 </a>
@@ -209,7 +209,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                             </div>
                             <div class="post-meta align-items-center">
                                 <div class="post-list-avatar">
-                                    <img src="<?php boxmoe_lazy_load_images(); ?>" 
+                                    <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
                                          data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
                                          alt="avatar" class="avatar lazy">
                                 </div>
