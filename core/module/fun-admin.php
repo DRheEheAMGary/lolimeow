@@ -196,6 +196,18 @@ echo '<style type="text/css">
 }
 add_action('login_head', 'boxmoe_login_logo');
 
+// 自动创建说说分类
+function boxmoe_ensure_shuoshuo_category() {
+    if (!get_category_by_slug('shuoshuo')) {
+        wp_insert_term('说说', 'category', array(
+            'slug'        => 'shuoshuo',
+            'description' => '微语/说说专用分类，使用[快速发说说]入口发布的文章自动归入此处',
+        ));
+    }
+}
+add_action('admin_init', 'boxmoe_ensure_shuoshuo_category');
+add_action('after_switch_theme', 'boxmoe_ensure_shuoshuo_category');
+
 // 快速发说说：侧边栏直接入口
 function boxmoe_add_shuoshuo_menu() {
     $shuoshuo_cat = get_category_by_slug('shuoshuo');
