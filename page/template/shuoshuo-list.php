@@ -37,16 +37,12 @@ $shuoshuo_query = new WP_Query($args);
 
     <?php if ($shuoshuo_query->have_posts()) : ?>
     <div class="blog-timeline">
-        <div class="timeline-line"></div>
         <?php 
         $index = 0;
         while ($shuoshuo_query->have_posts()) : $shuoshuo_query->the_post(); 
             $index++;
         ?>
-        <div class="timeline-item <?php echo ($index % 2 == 1) ? 'timeline-left' : 'timeline-right'; ?>">
-            <div class="timeline-dot">
-                <div class="dot-inner"></div>
-            </div>
+        <div class="timeline-item">
             <div class="timeline-card <?php echo boxmoe_border_setting(); ?> shuoshuo-card">
                 <!-- 头部 -->
                 <div class="timeline-card-header">

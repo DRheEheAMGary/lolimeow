@@ -947,35 +947,17 @@ footer .logo {height:35px;}
 /* 时间轴容器 */
 .blog-timeline {position: relative;padding: 20px 0;}
 
-/* 中间竖线 */
-.timeline-line {position: absolute;left: 50%;top: 0;bottom: 0;width: 3px;background: linear-gradient(180deg, #D87CFF 0%, #F59DFF 50%, #A34F9B 100%);transform: translateX(-50%);border-radius: 3px;}
-
-/* 时间轴条目 */
-.timeline-item {position: relative;display: flex;align-items: flex-start;margin-bottom: 40px;opacity: 0;animation: fadeInUp 0.6s ease forwards;}
-/* .timeline-line 是第1个子元素，timeline-item 从第2个开始 */
-.timeline-item:nth-child(2) {animation-delay: 0.1s;}
-.timeline-item:nth-child(3) {animation-delay: 0.2s;}
-.timeline-item:nth-child(4) {animation-delay: 0.3s;}
-.timeline-item:nth-child(5) {animation-delay: 0.4s;}
-.timeline-item:nth-child(6) {animation-delay: 0.5s;}
-
-/* 左侧条目 */
-.timeline-left {justify-content: flex-start;padding-right: calc(50% + 30px);}
-/* 右侧条目 */
-.timeline-right {justify-content: flex-end;padding-left: calc(50% + 30px);}
-
-/* 时间轴圆点 */
-.timeline-dot {position: absolute;left: 50%;top: 20px;width: 20px;height: 20px;transform: translate(-50%, -50%);z-index: 2;}
-.timeline-dot .dot-inner {width: 16px;height: 16px;background: #fff;border: 3px solid #D87CFF;border-radius: 50%;transition: all 0.3s ease;}
-.timeline-item:hover .dot-inner {background: #D87CFF;transform: scale(1.3);box-shadow: 0 0 12px rgba(216, 124, 255, 0.6);}
+/* 时间轴条目（居中单列） */
+.timeline-item {display: flex;justify-content: center;margin-bottom: 40px;opacity: 0;animation: fadeInUp 0.6s ease forwards;}
+.timeline-item:nth-child(1) {animation-delay: 0.1s;}
+.timeline-item:nth-child(2) {animation-delay: 0.2s;}
+.timeline-item:nth-child(3) {animation-delay: 0.3s;}
+.timeline-item:nth-child(4) {animation-delay: 0.4s;}
+.timeline-item:nth-child(5) {animation-delay: 0.5s;}
 
 /* 时间轴卡片 */
-.timeline-card {flex: 1;background: var(--bs-white);border-radius: 12px;overflow: hidden;transition: all 0.3s ease;position: relative;}
+.timeline-card {max-width: 700px;width: 100%;background: var(--bs-white);border-radius: 12px;overflow: hidden;transition: all 0.3s ease;position: relative;}
 .timeline-card:hover {transform: translateY(-3px);box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);}
-/* 箭头：左侧条目 → 箭头在卡片右侧 */
-.timeline-left .timeline-card::after {content: '';position: absolute;right: -8px;top: 16px;width: 16px;height: 16px;background: var(--bs-white);transform: rotate(45deg);border-radius: 2px;}
-/* 箭头：右侧条目 → 箭头在卡片左侧 */
-.timeline-right .timeline-card::after {content: '';position: absolute;left: -8px;top: 16px;width: 16px;height: 16px;background: var(--bs-white);transform: rotate(45deg);border-radius: 2px;}
 
 /* ====== 卡片头部 ====== */
 .timeline-card-header {display: flex;align-items: flex-start;padding: 16px 20px 0;gap: 12px;}
@@ -1043,12 +1025,8 @@ footer .logo {height:35px;}
 
 /* ====== 移动端适配 ====== */
 @media (max-width: 768px) {
-    .timeline-line {left: 20px;}
-    .timeline-item {padding-left: 50px !important;padding-right: 0 !important;justify-content: flex-start !important;}
-    .timeline-dot {left: 20px;}
-    .timeline-card::after {display: none !important;}
-    .timeline-left .timeline-card::after,
-    .timeline-right .timeline-card::after {display: none !important;}
+    .timeline-item {margin-bottom: 24px;}
+    .timeline-card {max-width: 100%;}
     .timeline-card-header {padding: 14px 14px 0;}
     .timeline-card-body {padding: 10px 14px;}
     .timeline-card-footer {padding: 8px 14px 12px;flex-direction: column;align-items: flex-start;}
@@ -1059,9 +1037,6 @@ footer .logo {height:35px;}
 
 /* ====== 暗色模式适配 ====== */
 [data-bs-theme="dark"] .timeline-card {background: #1a1a2e;}
-[data-bs-theme="dark"] .timeline-card::after {background: #1a1a2e;}
-[data-bs-theme="dark"] .timeline-left .timeline-card::after,
-[data-bs-theme="dark"] .timeline-right .timeline-card::after {background: #1a1a2e;}
 [data-bs-theme="dark"] .timeline-card-footer {border-top-color: rgba(255,255,255,0.08);}
 [data-bs-theme="dark"] .timeline-actions .action-btn {border-color: rgba(255,255,255,0.12);color: #ccc;}
 [data-bs-theme="dark"] .timeline-actions .action-btn:hover {background: rgba(216,124,255,0.12);border-color: #D87CFF;color: #D87CFF;}

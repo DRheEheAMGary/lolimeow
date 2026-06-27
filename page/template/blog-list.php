@@ -12,7 +12,6 @@ $shuoshuo_slug = 'shuoshuo';
 <div class="<?php echo boxmoe_layout_setting(); ?> blog-post">
     <?php if (have_posts()) : ?>
     <div class="blog-timeline">
-        <div class="timeline-line"></div>
         <?php 
         $index = 0;
         while (have_posts()) : the_post(); 
@@ -20,11 +19,7 @@ $shuoshuo_slug = 'shuoshuo';
             // 判断是否为说说类型
             $is_shuoshuo = has_category($shuoshuo_slug);
         ?>
-        <div class="timeline-item <?php echo ($index % 2 == 1) ? 'timeline-left' : 'timeline-right'; ?>">
-            <!-- 时间指示器 -->
-            <div class="timeline-dot">
-                <div class="dot-inner"></div>
-            </div>
+        <div class="timeline-item">
             <div class="timeline-card <?php echo boxmoe_border_setting(); ?> <?php echo $is_shuoshuo ? 'shuoshuo-card' : ''; ?>">
                 
                 <!-- 头部：头像 + 作者 + 时间 + 分类 -->
