@@ -36,28 +36,19 @@ add_filter('post_thumbnail_size', 'boxmoe_article_thumbnail_size');
 
 // 文章缩略图逻辑--------------------------boxmoe.com--------------------------
 function boxmoe_article_thumbnail_src() {
-    global $post;
-    $src='';
-    if ($thumbnail_id = get_post_thumbnail_id()) {
-        $src=wp_get_attachment_image_url($thumbnail_id, 'full');
-    }elseif ($thumbnail_url = get_post_meta(get_the_ID(), '_thumbnail', true)) {
-        $src=$thumbnail_url;
-    }elseif (preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $post->post_content, $matches)) {
-        $src=$matches[1][0]; 
+    // 始终使用随机图片
+    if(get_boxmoe('boxmoe_article_thumbnail_random_api')){
+        $src = get_boxmoe('boxmoe_article_thumbnail_random_api_url');
+        return $src ?: boxmoe_theme_url().'/assets/images/default-thumbnail.jpg';
     }else{
-        if(get_boxmoe('boxmoe_article_thumbnail_random_api')){
-            $src=get_boxmoe('boxmoe_article_thumbnail_random_api_url');
-        }else{
-            $random_images = glob(get_template_directory().'/assets/images/random/*.{jpg,jpeg,png,gif}', GLOB_BRACE);   
-            if (!empty($random_images)) {
-                $random_key = array_rand($random_images);
-                $src = str_replace(get_template_directory(), get_template_directory_uri(), $random_images[$random_key]);
-            } else {
-                $src = boxmoe_theme_url().'/assets/images/default-thumbnail.jpg';
-            }
+        $random_images = glob(get_template_directory().'/assets/images/random/*.{jpg,jpeg,png,gif,webp}', GLOB_BRACE);   
+        if (!empty($random_images)) {
+            $random_key = array_rand($random_images);
+            return str_replace(get_template_directory(), get_template_directory_uri(), $random_images[$random_key]);
+        } else {
+            return boxmoe_theme_url().'/assets/images/default-thumbnail.jpg';
         }
     }
-    return $src ?: boxmoe_theme_url().'/assets/images/default-thumbnail.jpg';
 }
 
 //文章点击数换算K--------------------------boxmoe.com--------------------------

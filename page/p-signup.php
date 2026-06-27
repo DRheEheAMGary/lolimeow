@@ -76,6 +76,7 @@ if (is_user_logged_in()){
                               </div>
                            </div>                          
                            <?php wp_nonce_field('user_signup', 'signup_nonce'); ?>
+                           <?php if(function_exists('cfturnstile_field_show')): cfturnstile_field_show('', '', 'wordpress-register', '-'.wp_rand()); endif; ?>
                            <div id="signup-message"></div>
                            <div class="d-grid">
                               <button class="btn btn-primary" type="submit">
@@ -95,7 +96,7 @@ if (is_user_logged_in()){
                </div>
             </div>
          </div>
-         <div class="position-fixed top-0 end-0 w-50 h-100 d-none d-lg-block vh-100" style="background-image: url(<?php echo get_boxmoe('boxmoe_user_login_bg')? get_boxmoe('boxmoe_user_login_bg') :'https://api.boxmoe.com/random.php'; ?>); background-position: center; background-repeat: no-repeat; background-size: cover;transform: skewX(-10deg);right:-8rem!important;">
+         <div class="position-fixed top-0 end-0 w-50 h-100 d-none d-lg-block vh-100" style="background-image: url(<?php echo get_boxmoe('boxmoe_user_login_bg')? get_boxmoe('boxmoe_user_login_bg') :'https://api.boxmoe.com/random.php'; ?>); background-position: center; background-repeat: no-repeat; background-size: cover;">
          </div>
       </div>
       <div class="position-absolute start-0 bottom-0 m-4">
@@ -205,12 +206,14 @@ if (is_user_logged_in()){
             signup_nonce: document.getElementById('signup_nonce').value
         };
         
+        const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
+        
         fetch(ajax_object.ajaxurl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: 'action=user_signup_action&formData=' + encodeURIComponent(JSON.stringify(formData))
+            body: 'action=user_signup_action&formData=' + encodeURIComponent(JSON.stringify(formData)) + '&cf-turnstile-response=' + encodeURIComponent(turnstileResponse)
         })
         .then(response => response.json())
         .then(response => {

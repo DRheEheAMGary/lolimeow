@@ -940,13 +940,13 @@ footer .logo {height:35px;}
 @media (max-width:991px){.xnkl{display:none}}
 .login_register_page .logo{height: 80px;}
 
-/* ==================== 说说时间轴样式 ==================== */
+/* ==================== 统一时间轴样式（文章 + 说说合并） ==================== */
 .shuoshuo-header {padding-top: 2rem;}
 .shuoshuo-header .shuoshuo-title {font-size: 1.5rem;font-weight: 700;color: var(--bs-gray-900);}
 .shuoshuo-header .shuoshuo-desc {font-size: 0.85rem;margin-top: 0.5rem;}
 
 /* 时间轴容器 */
-.shuoshuo-timeline {position: relative;padding: 20px 0;}
+.blog-timeline {position: relative;padding: 20px 0;}
 
 /* 中间竖线 */
 .timeline-line {position: absolute;left: 50%;top: 0;bottom: 0;width: 3px;background: linear-gradient(180deg, #D87CFF 0%, #F59DFF 50%, #A34F9B 100%);transform: translateX(-50%);border-radius: 3px;}
@@ -972,20 +972,43 @@ footer .logo {height:35px;}
 /* 时间轴卡片 */
 .timeline-card {flex: 1;background: var(--bs-white);border-radius: 12px;overflow: hidden;transition: all 0.3s ease;position: relative;}
 .timeline-card:hover {transform: translateY(-3px);box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);}
+/* 箭头：左侧条目 → 箭头在卡片右侧 */
 .timeline-left .timeline-card::after {content: '';position: absolute;right: -8px;top: 16px;width: 16px;height: 16px;background: var(--bs-white);transform: rotate(45deg);border-radius: 2px;}
+/* 箭头：右侧条目 → 箭头在卡片左侧 */
 .timeline-right .timeline-card::after {content: '';position: absolute;left: -8px;top: 16px;width: 16px;height: 16px;background: var(--bs-white);transform: rotate(45deg);border-radius: 2px;}
 
-/* 卡片头部 */
-.timeline-card-header {display: flex;align-items: center;padding: 16px 20px 0;gap: 12px;}
-.timeline-avatar .avatar {width: 40px;height: 40px;border-radius: 50%;object-fit: cover;border: 2px solid #f0f0f0;}
-.timeline-meta {display: flex;flex-direction: column;gap: 2px;}
-.timeline-author {font-size: 0.85rem;font-weight: 600;color: var(--bs-gray-900);}
+/* ====== 卡片头部 ====== */
+.timeline-card-header {display: flex;align-items: flex-start;padding: 16px 20px 0;gap: 12px;}
+.timeline-avatar .avatar {width: 40px;height: 40px;border-radius: 50%;object-fit: cover;border: 2px solid #f0f0f0;flex-shrink: 0;}
+.timeline-meta {display: flex;flex-direction: column;gap: 6px;flex: 1;min-width: 0;}
+.timeline-meta-top {display: flex;align-items: center;gap: 12px;flex-wrap: wrap;}
+.timeline-author {font-size: 0.85rem;font-weight: 600;color: var(--bs-gray-900);white-space: nowrap;}
 .timeline-author i {margin-right: 4px;color: #D87CFF;}
-.timeline-time {font-size: 0.75rem;color: var(--bs-gray-600);}
+.timeline-time {font-size: 0.75rem;color: var(--bs-gray-600);white-space: nowrap;}
 .timeline-time i {margin-right: 4px;}
 
-/* 卡片正文 */
+/* 分类徽章行 */
+.timeline-cats {display: flex;flex-wrap: wrap;gap: 6px;}
+.timeline-cat-badge {display: inline-block;padding: 2px 10px;background: #f0e6ff;color: #8b5cf6;border-radius: 12px;font-size: 0.7rem;transition: all 0.2s ease;text-decoration: none;}
+.timeline-cat-badge:hover {background: #D87CFF;color: #fff;}
+
+/* ====== 卡片正文 ====== */
 .timeline-card-body {padding: 12px 20px;}
+
+/* 文章模式：缩略图 */
+.timeline-thumb {margin-bottom: 12px;border-radius: 8px;overflow: hidden;}
+.timeline-thumb img {width: 100%;max-height: 280px;object-fit: cover;transition: transform 0.4s ease;}
+.timeline-card:hover .timeline-thumb img {transform: scale(1.03);}
+
+/* 文章模式：标题 */
+.timeline-post-title {font-size: 1.1rem;font-weight: 700;margin-bottom: 8px;line-height: 1.5;}
+.timeline-post-title a {color: var(--bs-gray-900);transition: color 0.2s ease;}
+.timeline-post-title a:hover {color: #D87CFF;}
+
+/* 文章模式：摘要 */
+.timeline-excerpt {font-size: 0.85rem;line-height: 1.7;color: var(--bs-gray-600);margin-bottom: 0;display: -webkit-box;-webkit-line-clamp: 3;-webkit-box-orient: vertical;overflow: hidden;}
+
+/* 说说模式：内容直出 */
 .shuoshuo-content {font-size: 0.9rem;line-height: 1.8;color: var(--bs-gray-800);word-break: break-word;}
 .shuoshuo-content p {margin-bottom: 0.8rem;color: var(--bs-gray-800);}
 .shuoshuo-content p:last-child {margin-bottom: 0;}
@@ -993,22 +1016,24 @@ footer .logo {height:35px;}
 .shuoshuo-content a {color: #D87CFF;}
 .shuoshuo-content a:hover {color: #A34F9B;}
 
-/* 卡片底部操作栏 */
+/* 说说卡片紧凑模式 */
+.shuoshuo-card .timeline-card-header {padding-bottom: 4px;}
+
+/* ====== 卡片底部操作栏 ====== */
 .timeline-card-footer {display: flex;align-items: center;justify-content: space-between;flex-wrap: wrap;padding: 10px 20px 14px;border-top: 1px solid #f0f0f0;gap: 8px;}
 
-.shuoshuo-actions {display: flex;gap: 6px;}
-.shuoshuo-actions .action-btn {display: inline-flex;align-items: center;gap: 4px;padding: 4px 12px;border: 1px solid #e8e8e8;border-radius: 20px;background: transparent;color: var(--bs-gray-700);font-size: 0.78rem;cursor: pointer;transition: all 0.2s ease;text-decoration: none;}
-.shuoshuo-actions .action-btn:hover {background: #f8f0ff;border-color: #D87CFF;color: #D87CFF;}
-.shuoshuo-actions .action-btn.favorited {background: #fff8e1;border-color: #ffc107;color: #e6a800;}
-.shuoshuo-actions .action-btn i {font-size: 0.8rem;}
+.timeline-actions {display: flex;gap: 4px;flex-wrap: wrap;}
+.timeline-actions .action-btn {display: inline-flex;align-items: center;gap: 4px;padding: 4px 12px;border: 1px solid #e8e8e8;border-radius: 20px;background: transparent;color: var(--bs-gray-700);font-size: 0.78rem;cursor: pointer;transition: all 0.2s ease;text-decoration: none;}
+.timeline-actions .action-btn:hover {background: #f8f0ff;border-color: #D87CFF;color: #D87CFF;}
+.timeline-actions .action-btn.favorited {background: #fff8e1;border-color: #ffc107;color: #e6a800;}
+.timeline-actions .action-btn i {font-size: 0.8rem;}
+/* 只读统计（浏览数）不显示hover效果 */
+.timeline-actions .view-stat {cursor: default;}
+.timeline-actions .view-stat:hover {background: transparent;border-color: #e8e8e8;color: var(--bs-gray-700);}
 
-.shuoshuo-tags {display: flex;flex-wrap: wrap;gap: 6px;}
-.shuoshuo-tags .tag-badge {display: inline-block;padding: 2px 10px;background: #f0e6ff;color: #8b5cf6;border-radius: 12px;font-size: 0.72rem;transition: all 0.2s ease;text-decoration: none;}
-.shuoshuo-tags .tag-badge:hover {background: #D87CFF;color: #fff;}
-
-/* 空状态 */
-.shuoshuo-empty {padding: 60px 20px;}
-.shuoshuo-empty .empty-icon i {display: block;}
+.timeline-tags {display: flex;flex-wrap: wrap;gap: 6px;}
+.timeline-tags .tag-badge {display: inline-block;padding: 2px 10px;background: #f0e6ff;color: #8b5cf6;border-radius: 12px;font-size: 0.72rem;transition: all 0.2s ease;text-decoration: none;}
+.timeline-tags .tag-badge:hover {background: #D87CFF;color: #fff;}
 
 /* 淡入动画 */
 @keyframes fadeInUp {
@@ -1016,32 +1041,40 @@ footer .logo {height:35px;}
     to {opacity: 1;transform: translateY(0);}
 }
 
-/* 移动端适配 */
+/* ====== 移动端适配 ====== */
 @media (max-width: 768px) {
     .timeline-line {left: 20px;}
     .timeline-item {padding-left: 50px !important;padding-right: 0 !important;justify-content: flex-start !important;}
     .timeline-dot {left: 20px;}
     .timeline-card::after {display: none !important;}
-    .timeline-left .timeline-card::after {display: none !important;}
+    .timeline-left .timeline-card::after,
     .timeline-right .timeline-card::after {display: none !important;}
     .timeline-card-header {padding: 14px 14px 0;}
     .timeline-card-body {padding: 10px 14px;}
     .timeline-card-footer {padding: 8px 14px 12px;flex-direction: column;align-items: flex-start;}
-    .shuoshuo-actions {width: 100%;justify-content: flex-start;}
+    .timeline-actions {width: 100%;justify-content: flex-start;}
+    .timeline-post-title {font-size: 1rem;}
+    .timeline-thumb img {max-height: 200px;}
 }
 
-/* 暗色模式适配 */
+/* ====== 暗色模式适配 ====== */
 [data-bs-theme="dark"] .timeline-card {background: #1a1a2e;}
 [data-bs-theme="dark"] .timeline-card::after {background: #1a1a2e;}
-[data-bs-theme="dark"] .timeline-left .timeline-card::after {background: #1a1a2e;}
+[data-bs-theme="dark"] .timeline-left .timeline-card::after,
 [data-bs-theme="dark"] .timeline-right .timeline-card::after {background: #1a1a2e;}
 [data-bs-theme="dark"] .timeline-card-footer {border-top-color: rgba(255,255,255,0.08);}
-[data-bs-theme="dark"] .shuoshuo-actions .action-btn {border-color: rgba(255,255,255,0.12);color: #ccc;}
-[data-bs-theme="dark"] .shuoshuo-actions .action-btn:hover {background: rgba(216,124,255,0.12);border-color: #D87CFF;color: #D87CFF;}
-[data-bs-theme="dark"] .shuoshuo-tags .tag-badge {background: rgba(139,92,246,0.2);}
-[data-bs-theme="dark"] .shuoshuo-tags .tag-badge:hover {background: #D87CFF;}
+[data-bs-theme="dark"] .timeline-actions .action-btn {border-color: rgba(255,255,255,0.12);color: #ccc;}
+[data-bs-theme="dark"] .timeline-actions .action-btn:hover {background: rgba(216,124,255,0.12);border-color: #D87CFF;color: #D87CFF;}
+[data-bs-theme="dark"] .timeline-actions .view-stat:hover {background: transparent;border-color: rgba(255,255,255,0.12);color: #ccc;}
+[data-bs-theme="dark"] .timeline-tags .tag-badge,
+[data-bs-theme="dark"] .timeline-cat-badge {background: rgba(139,92,246,0.2);}
+[data-bs-theme="dark"] .timeline-tags .tag-badge:hover,
+[data-bs-theme="dark"] .timeline-cat-badge:hover {background: #D87CFF;}
 [data-bs-theme="dark"] .timeline-avatar .avatar {border-color: rgba(255,255,255,0.1);}
 [data-bs-theme="dark"] .timeline-dot .dot-inner {background: #1a1a2e;}
+[data-bs-theme="dark"] .timeline-excerpt {color: #aaa;}
+[data-bs-theme="dark"] .timeline-post-title a {color: #eee;}
+[data-bs-theme="dark"] .timeline-post-title a:hover {color: #D87CFF;}
 
 
 

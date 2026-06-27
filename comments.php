@@ -225,6 +225,7 @@ if(!isset($user_ID)) {
                                         </label>
                                         <div class="form-submit">
                                              <?php do_action('comment_form', $post->ID); ?>
+                                            <?php if(function_exists('cfturnstile_field_show')): cfturnstile_field_show('', '', 'wordpress-comment', '-c'.wp_rand()); endif; ?>
                                             <button type="submit" name="submit" type="submit" id="submit" tabindex="5" class="submit-btn">
                                                 <i class="fa fa-paper-plane"></i> 发表评论
                                             </button>

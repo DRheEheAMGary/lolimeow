@@ -37,6 +37,7 @@ if (is_user_logged_in()){
                   </div>
                   <form class="needs-validation mb-5" id="resetPasswordForm" novalidate>
                      <?php wp_nonce_field('reset_password_action', 'reset_password_nonce'); ?>
+                     <?php if(function_exists('cfturnstile_field_show')): cfturnstile_field_show('', '', 'wordpress-reset', '-'.wp_rand()); endif; ?>
                      <div class="mb-3">
                         <label for="resetEmailInput" class="form-label">
                            邮箱
@@ -61,7 +62,7 @@ if (is_user_logged_in()){
                </div>
             </div>
          </div>
-         <div class="position-fixed top-0 end-0 w-50 h-100 d-none d-lg-block vh-100" style="background-image: url(<?php echo get_boxmoe('boxmoe_user_login_bg')? get_boxmoe('boxmoe_user_login_bg') :'https://api.boxmoe.com/random.php'; ?>); background-position: center; background-repeat: no-repeat; background-size: cover;transform: skewX(-10deg);right:-8rem!important;">
+         <div class="position-fixed top-0 end-0 w-50 h-100 d-none d-lg-block vh-100" style="background-image: url(<?php echo get_boxmoe('boxmoe_user_login_bg')? get_boxmoe('boxmoe_user_login_bg') :'https://api.boxmoe.com/random.php'; ?>); background-position: center; background-repeat: no-repeat; background-size: cover;">
          </div>
       </div>
 
@@ -125,6 +126,8 @@ if (is_user_logged_in()){
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 发送中...';
         
+        const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
+        
         fetch(ajax_object.ajaxurl, {
             method: 'POST',
             headers: {
@@ -133,7 +136,8 @@ if (is_user_logged_in()){
             body: new URLSearchParams({
                 action: 'reset_password_action',
                 user_email: emailInput.value,
-                nonce: document.getElementById('reset_password_nonce').value
+                nonce: document.getElementById('reset_password_nonce').value,
+                'cf-turnstile-response': turnstileResponse
             })
         })
         .then(response => response.json())

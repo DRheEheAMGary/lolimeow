@@ -66,7 +66,15 @@ function handle_user_login() {
             'message' => '安全验证失败，请刷新页面重试'
         ));
         exit;
-    }  
+    }
+    // Cloudflare Turnstile 验证
+    if(function_exists('cfturnstile_check')) {
+        $check = cfturnstile_check('', 'wordpress-login');
+        if(!$check['success']) {
+            wp_send_json_error(array('message' => cfturnstile_failed_message()));
+            exit;
+        }
+    }
     if (empty($formData['username']) || empty($formData['password'])) {
         wp_send_json_error(array(
             'message' => '用户名和密码不能为空'
@@ -150,7 +158,15 @@ function handle_user_signup() {
             'message' => '安全验证失败，请刷新页面重试'
         ));
         exit;
-    }   
+    }
+    // Cloudflare Turnstile 验证
+    if(function_exists('cfturnstile_check')) {
+        $check = cfturnstile_check('', 'wordpress-register');
+        if(!$check['success']) {
+            wp_send_json_error(array('message' => cfturnstile_failed_message()));
+            exit;
+        }
+    }
     if (empty($formData['username']) || empty($formData['email']) || empty($formData['password']) || empty($formData['confirmpassword'])) {
         wp_send_json_error(array(
             'message' => '所有字段都为必填项'
@@ -293,6 +309,14 @@ function handle_reset_password_request() {
     if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'reset_password_action')) {
         wp_send_json_error(array('message' => '安全验证失败，请刷新页面重试'));
         exit;
+    }
+    // Cloudflare Turnstile 验证
+    if(function_exists('cfturnstile_check')) {
+        $check = cfturnstile_check('', 'wordpress-reset');
+        if(!$check['success']) {
+            wp_send_json_error(array('message' => cfturnstile_failed_message()));
+            exit;
+        }
     }
 
     $user_email = sanitize_email($_POST['user_email']);

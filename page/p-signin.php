@@ -67,6 +67,7 @@ if (is_user_logged_in()){
                      </div>
 
                      <?php wp_nonce_field('user_login', 'login_nonce'); ?>
+                     <?php if(function_exists('cfturnstile_field_show')): cfturnstile_field_show('', '', 'wordpress-login', '-'.wp_rand()); endif; ?>
                      <div class="d-grid">
                         <button class="btn btn-primary" type="submit" name="login_submit">
                            <span class="spinner-border spinner-border-sm me-2 d-none" role="status"></span>
@@ -86,7 +87,7 @@ if (is_user_logged_in()){
                </div>
             </div>
          </div>
-         <div class="position-fixed top-0 end-0 w-50 h-100 d-none d-lg-block vh-100" style="background-image: url(<?php echo get_boxmoe('boxmoe_user_login_bg')? get_boxmoe('boxmoe_user_login_bg') :'https://api.boxmoe.com/random.php'; ?>); background-position: center; background-repeat: no-repeat; background-size: cover;transform: skewX(-10deg);right:-8rem!important;">
+         <div class="position-fixed top-0 end-0 w-50 h-100 d-none d-lg-block vh-100" style="background-image: url(<?php echo get_boxmoe('boxmoe_user_login_bg')? get_boxmoe('boxmoe_user_login_bg') :'https://api.boxmoe.com/random.php'; ?>); background-position: center; background-repeat: no-repeat; background-size: cover;">
          </div>
       </div>
 
@@ -148,13 +149,14 @@ if (is_user_logged_in()){
             password: document.getElementById('password').value,
             rememberme: document.getElementById('rememberme').checked,
             login_nonce: document.getElementById('login_nonce').value 
-        };                         
+        };
+        const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value || '';                         
         fetch(ajax_object.ajaxurl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: 'action=user_login_action&formData=' + encodeURIComponent(JSON.stringify(formData))
+            body: 'action=user_login_action&formData=' + encodeURIComponent(JSON.stringify(formData)) + '&cf-turnstile-response=' + encodeURIComponent(turnstileResponse)
         })
         .then(response => response.json())
         .then(response => {
