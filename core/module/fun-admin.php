@@ -189,9 +189,38 @@ function example_footer_admin () {
 	}
 	add_filter('admin_footer_text', 'example_footer_admin');
 
-function customize_login_logo(){         
+function boxmoe_login_logo(){         
 echo '<style type="text/css">
 .login{display:flex;min-height:100vh;justify-content:center;align-items:center;background:linear-gradient(-45deg,#ee7752,#e73c7e,#23a6d5,#23d5ab);background-size:400% 400%;animation:gradient 15s ease infinite;}@keyframes gradient{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}#login{background:rgba(255,255,255,0.9);padding:40px 30px;border-radius:15px;box-shadow:0 0 20px rgba(0,0,0,0.1);width:350px;}@media (max-width:768px){#login{background:transparent;box-shadow:none;}}.login h1 a{background-image:url('.get_template_directory_uri() .'/assets/images/logo.png);width:180px;height:80px;margin:0 auto 20px;background-size:contain;background-repeat:no-repeat;background-position:center center;}.login form{background:transparent !important;padding:0 !important;border:none !important;box-shadow:none !important;}.login input[type="text"],.login input[type="password"]{border-radius:5px;border:1px solid #ddd;padding:10px;margin-bottom:15px;}.wp-core-ui .button-primary{background:#23a6d5;border:none;border-radius:5px;padding:5px 20px;height:auto;transition:all 0.3s ease;}.wp-core-ui .button-primary:hover{background:#1e8ab0;}.language-switcher{display:none;}
 </style>';   
-}  
-add_action('login_head', 'customize_login_logo'); 	
+}
+add_action('login_head', 'boxmoe_login_logo');
+
+// 快速发说说：侧边栏直接入口
+function boxmoe_add_shuoshuo_menu() {
+    $shuoshuo_cat = get_category_by_slug('shuoshuo');
+    $cat_id = $shuoshuo_cat ? $shuoshuo_cat->term_id : 1;
+    $icon = 'data:image/svg+xml;base64,' . base64_encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>');
+    add_menu_page(
+        '快速发说说',
+        '发说说',
+        'publish_posts',
+        'post-new.php?shuoshuo=1',
+        '',
+        $icon,
+        3
+    );
+}
+add_action('admin_menu', 'boxmoe_add_shuoshuo_menu');
+
+// 进入「发说说」时预选说说分类
+function boxmoe_preselect_shuoshuo_cat() {
+    if (isset($_GET['shuoshuo']) && $_GET['shuoshuo'] == '1') {
+        $cat = get_category_by_slug('shuoshuo');
+        if ($cat) {
+            echo '<script>document.addEventListener("DOMContentLoaded",function(){var cb=document.getElementById("in-category-'.$cat->term_id.'");if(cb)cb.checked=true;});</script>';
+        }
+    }
+}
+add_action('admin_footer-post-new.php', 'boxmoe_preselect_shuoshuo_cat');  
+add_action('login_head', 'boxmoe_login_logo'); 	
