@@ -60,8 +60,7 @@ function boxmoe_shuoshuo_dashboard_block_ai() {
     remove_action('save_post_post', array('AI_Summary_Generator_Admin', 'ai_summary_generator_update_on_post_save'), 20);
 }
 
-// Step 3: 前端：说说文章撤销插件的 AI 摘要（比插件晚执行，说说则回退原内容）
-// the_content：插件优先级10 → 追加 AI blockquote → 我优先级15，说说时去掉
+// Step 3: 说说文章单页移除 AI blockquote（_get_excerpt 已处理列表摘要）
 function boxmoe_shuoshuo_undo_ai_content($content) {
     if (has_category('shuoshuo')) {
         // 移除插件追加的 .ai-summary blockquote（在内容最前面）
@@ -149,6 +148,17 @@ add_filter( 'excerpt_length', 'custom_excerpt_length');
 
 //文章、评论内容缩短--------------------------boxmoe.com--------------------------
 function _get_excerpt($limit = 60, $after = '...') { 
+	// 非说说文章：优先使用 AI 摘要（绕过插件 is_home() 限制）
+	if (!has_category('shuoshuo') && class_exists('AI_Summary_Generator_Core')) {
+		$ai = AI_Summary_Generator_Core::get_summary(get_the_ID());
+		if ($ai) {
+			$text = wp_strip_all_tags($ai);
+			if (mb_strlen($text) > $limit) {
+				return _str_cut($text, 0, $limit, $after);
+			}
+			return $text;
+		}
+	}
 	$excerpt = get_the_excerpt();
 	if (mb_strlen($excerpt) > $limit) {
 		return _str_cut(strip_tags($excerpt), 0, $limit, $after);
