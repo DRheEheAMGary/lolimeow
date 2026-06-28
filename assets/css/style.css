@@ -990,7 +990,7 @@ footer .logo {height:35px;}
 /* 文章模式：摘要 */
 .timeline-excerpt {font-size: 0.85rem;line-height: 1.7;color: var(--bs-gray-600);margin-bottom: 0;display: -webkit-box;-webkit-line-clamp: 3;-webkit-box-orient: vertical;overflow: hidden;}
 
-/* 说说模式：内容直出 */
+/* 说说内容直出（shuoshuo-list 页面 & 单页复用） */
 .shuoshuo-content {font-size: 0.9rem;line-height: 1.8;color: var(--bs-gray-800);word-break: break-word;}
 .shuoshuo-content p {margin-bottom: 0.8rem;color: var(--bs-gray-800);}
 .shuoshuo-content p:last-child {margin-bottom: 0;}
@@ -1001,16 +1001,34 @@ footer .logo {height:35px;}
 /* 说说卡片紧凑模式 */
 .shuoshuo-card .timeline-card-header {padding-bottom: 4px;}
 
-/* ====== 文章列表说说头像 & 卡片 ====== */
-.shuoshuo-post {position: relative;display: flex !important;flex-wrap: nowrap;align-items: flex-start;}
-.shuoshuo-avatar-wrap {flex: 0 0 auto;padding: 15px 0 15px 15px;}
-.shuoshuo-avatar-wrap::after {display: none !important;}
-.shuoshuo-avatar {width: 44px;height: 44px;border-radius: 50%;object-fit: cover;flex-shrink: 0;}
-.shuoshuo-card-body {flex: 1;min-width: 0;padding: 15px 15px 15px 5px;}
-/* 覆盖 list-one 的菱形遮罩 */
-.shuoshuo-post .list-post-author {order: unset !important;display: inline !important;}
-.shuoshuo-post .post-meta {border-top: 1px dashed #eee;margin-top: 0;padding-top: 8px;}
-[data-bs-theme="dark"] .shuoshuo-post .post-meta {border-top-color: rgba(255,255,255,0.08);}
+/* ====== 文章列表说说卡片（完全独立样式，不受 list-one 干扰） ====== */
+.shuoshuo-post {display: flex !important;flex-wrap: nowrap !important;align-items: flex-start !important;padding: 0 !important;margin-bottom: 2rem !important;background-color: var(--bs-white);border-radius: 12px;overflow: hidden;}
+.shuoshuo-post .shuoshuo-avatar-wrap {flex: 0 0 auto;padding: 16px 0 16px 16px;}
+.shuoshuo-post .shuoshuo-avatar-wrap::after {display: none !important;}
+.shuoshuo-post .shuoshuo-avatar {width: 44px;height: 44px;border-radius: 50% !important;object-fit: cover;clip-path: none !important;border: none !important;}
+.shuoshuo-post .shuoshuo-card-body {flex: 1;min-width: 0;padding: 16px 16px 16px 12px;}
+/* 头部信息行 */
+.shuoshuo-post .shuoshuo-meta-top {display: flex;align-items: center;gap: 6px;margin-bottom: 8px;}
+.shuoshuo-post .shuoshuo-author {font-size: 0.85rem;font-weight: 600;color: var(--bs-gray-900);}
+.shuoshuo-post .shuoshuo-author i {color: #D87CFF;margin-right: 4px;}
+.shuoshuo-post .shuoshuo-dot {display: inline-block;width: 5px;height: 5px;background: #ff4c60;border-radius: 50%;flex-shrink: 0;}
+.shuoshuo-post .shuoshuo-time {font-size: 0.75rem;color: var(--bs-gray-500);}
+/* 说说正文 */
+.shuoshuo-post .shuoshuo-content {font-size: 0.9rem;line-height: 1.8;color: var(--bs-gray-800);word-break: break-word;margin-bottom: 10px;}
+.shuoshuo-post .shuoshuo-content > *:last-child {margin-bottom: 0;}
+/* 底部操作 */
+.shuoshuo-post .shuoshuo-actions {display: flex;align-items: center;gap: 14px;padding-top: 8px;border-top: 1px dashed #eee;}
+.shuoshuo-post .shuoshuo-stat {font-size: 0.75rem;color: var(--bs-gray-600);text-decoration: none;display: inline-flex;align-items: center;gap: 3px;}
+.shuoshuo-post .shuoshuo-stat:hover {color: var(--bs-gray-800);}
+.shuoshuo-post .shuoshuo-link {font-size: 0.75rem;color: #D87CFF;text-decoration: none;margin-left: auto;display: inline-flex;align-items: center;gap: 3px;}
+.shuoshuo-post .shuoshuo-link:hover {color: #A34F9B;}
+/* 暗色模式 */
+[data-bs-theme="dark"] .shuoshuo-post {background: #1a1a2e;}
+[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-author {color: #eee;}
+[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-content {color: #ccc;}
+[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-actions {border-top-color: rgba(255,255,255,0.08);}
+
+/* ====== 旧版兼容删除 ====== */
 
 /* ====== 卡片底部操作栏 ====== */
 .timeline-card-footer {display: flex;align-items: center;justify-content: space-between;flex-wrap: wrap;padding: 10px 20px 14px;border-top: 1px solid #f0f0f0;gap: 8px;}

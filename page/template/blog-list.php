@@ -13,31 +13,31 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
         ?>
         <?php if ($is_shuoshuo): ?>
         <!-- ====== 说说卡片：紧凑模式 ====== -->
-        <article class="post-list list-one row blog-border shuoshuo-post">
+        <article class="post-list blog-border shuoshuo-post">
             <div class="shuoshuo-avatar-wrap">
                 <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
                      data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
-                     alt="avatar" class="shuoshuo-avatar lazy" style="width:44px;height:44px;border-radius:50%;object-fit:cover;clip-path:none;">
+                     alt="avatar" class="shuoshuo-avatar lazy">
             </div>
             <div class="shuoshuo-card-body">
-                <div class="post-meta-info" style="margin-bottom:8px;">
-                    <span class="list-post-author" style="font-size:0.85rem;font-weight:600;">
+                <div class="shuoshuo-meta-top">
+                    <span class="shuoshuo-author">
                         <i class="fa fa-at"></i><?php the_author(); ?>
-                        <span class="dot"></span>
-                        <?php echo get_the_time('m-d H:i'); ?>
                     </span>
+                    <span class="shuoshuo-dot"></span>
+                    <span class="shuoshuo-time"><?php echo get_the_time('m-d H:i'); ?></span>
                 </div>
                 <div class="shuoshuo-content">
                     <?php the_content(); ?>
                 </div>
-                <div class="post-meta" style="margin:0;padding:8px 0 0;border-top:1px dashed #eee;gap:12px;display:flex;flex-wrap:wrap;align-items:center;">
-                    <span style="font-size:0.75rem;color:var(--bs-gray-700);">
-                        <i class="fa fa-street-view" style="margin-right:3px;"></i><?php echo getPostViews(get_the_ID()); ?>
+                <div class="shuoshuo-actions">
+                    <span class="shuoshuo-stat">
+                        <i class="fa fa-street-view"></i><?php echo getPostViews(get_the_ID()); ?>
                     </span>
-                    <a href="<?php the_permalink(); ?>#comments-container" style="font-size:0.75rem;color:var(--bs-gray-700);text-decoration:none;">
-                        <i class="fa fa-comments-o" style="margin-right:3px;"></i><?php echo get_comments_number(); ?>
+                    <a href="<?php the_permalink(); ?>#comments-container" class="shuoshuo-stat">
+                        <i class="fa fa-comments-o"></i><?php echo get_comments_number(); ?>
                     </a>
-                    <a href="<?php the_permalink(); ?>" style="font-size:0.75rem;color:#D87CFF;text-decoration:none;margin-left:auto;">
+                    <a href="<?php the_permalink(); ?>" class="shuoshuo-link">
                         详情 <i class="fa fa-arrow-right"></i>
                     </a>
                 </div>
