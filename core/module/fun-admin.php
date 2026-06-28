@@ -225,6 +225,10 @@ function boxmoe_shuoshuo_widget_html() {
         if (!empty($content)) {
             $cat = get_category_by_slug('shuoshuo');
             if ($cat) {
+                // 发布前屏蔽 AI 插件
+                if (function_exists('boxmoe_shuoshuo_dashboard_block_ai')) {
+                    boxmoe_shuoshuo_dashboard_block_ai();
+                }
                 $title = wp_trim_words(strip_tags($content), 8, '...') ?: '无标题说说';
                 $post_id = wp_insert_post(array(
                     'post_title'   => $title,

@@ -34,6 +34,43 @@ function boxmoe_article_thumbnail_size($size) {
 add_filter('post_thumbnail_size', 'boxmoe_article_thumbnail_size');
 }
 
+// ====== 说说文章屏蔽 AI Summary Generator 插件（精确移除） ======
+// 该插件唯一自动入口: AI_Summary_Generator_Admin::save_post_post 优先级20
+// 插件 fe meta: _ai_summary_generator_summary + _ai_summary_generator_last_modified
+// 插件前端: AI_Summary_Generator_Frontend::the_content + ::get_the_excerpt
+
+// Step 1: save_post_post 最早介入，移除插件钩子 + 屏蔽 option
+function boxmoe_shuoshuo_block_ai_save($post_id) {
+    // 移除插件 save_post_post（无论是不是说说，尽早卸掉）
+    remove_action('save_post_post', array('AI_Summary_Generator_Admin', 'ai_summary_generator_update_on_post_save'), 20);
+    
+    if (has_category('shuoshuo', $post_id)) {
+        // 临时让 option 返回 no，防止其他入口调用
+        add_filter('pre_option_ai_summary_generator_update_on_post_update', function(){ return 'no'; }, 9999);
+        // 清理元数据
+        delete_post_meta($post_id, '_ai_summary_generator_summary');
+        delete_post_meta($post_id, '_ai_summary_generator_last_modified');
+    }
+}
+add_action('save_post_post', 'boxmoe_shuoshuo_block_ai_save', 1);
+
+// Step 2: 仪表盘快速发说说附加拦截
+function boxmoe_shuoshuo_dashboard_block_ai() {
+    add_filter('pre_option_ai_summary_generator_update_on_post_update', function(){ return 'no'; }, 9999);
+    remove_action('save_post_post', array('AI_Summary_Generator_Admin', 'ai_summary_generator_update_on_post_save'), 20);
+}
+
+// Step 3: 前端彻底移除说说文章的 AI 摘要
+function boxmoe_shuoshuo_remove_ai_frontend() {
+    global $post;
+    if (!$post) return;
+    if (has_category('shuoshuo', $post->ID)) {
+        remove_filter('the_content', array('AI_Summary_Generator_Frontend', 'ai_summary_generator_display_summary'));
+        remove_filter('get_the_excerpt', array('AI_Summary_Generator_Frontend', 'ai_summary_generator_override_homepage_summary'));
+    }
+}
+add_action('wp', 'boxmoe_shuoshuo_remove_ai_frontend');
+
 // 文章缩略图逻辑--------------------------boxmoe.com--------------------------
 function boxmoe_article_thumbnail_src() {
     // 随机图片
