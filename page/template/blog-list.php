@@ -14,12 +14,12 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
         <?php if ($is_shuoshuo): ?>
         <!-- ====== 说说卡片：紧凑模式 ====== -->
         <article class="post-list list-one row blog-border shuoshuo-post">
-            <div class="post-list-avatar" style="flex:0 0 auto;width:auto;padding:15px 0 15px 15px;">
+            <div class="shuoshuo-avatar-wrap">
                 <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
                      data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
-                     alt="avatar" class="avatar lazy">
+                     alt="avatar" class="shuoshuo-avatar lazy">
             </div>
-            <div class="post-list-content" style="padding:15px 15px 15px 5px;">
+            <div class="shuoshuo-card-body">
                 <div class="post-meta-info" style="margin-bottom:8px;">
                     <span class="list-post-author" style="font-size:0.85rem;font-weight:600;">
                         <i class="fa fa-at"></i><?php the_author(); ?>
@@ -43,7 +43,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                 </div>
             </div>
         </article>
-        <?php else: ?>
+                <?php else: ?>
         <!-- ====== 普通文章：缩略图 + 摘要 ====== -->
         <article class="post-list list-one row blog-border">
             <div class="post-list-img">

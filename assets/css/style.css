@@ -1001,6 +1001,17 @@ footer .logo {height:35px;}
 /* 说说卡片紧凑模式 */
 .shuoshuo-card .timeline-card-header {padding-bottom: 4px;}
 
+/* ====== 文章列表说说头像 & 卡片 ====== */
+.shuoshuo-post {position: relative;display: flex !important;flex-wrap: nowrap;align-items: flex-start;}
+.shuoshuo-avatar-wrap {flex: 0 0 auto;padding: 15px 0 15px 15px;}
+.shuoshuo-avatar-wrap::after {display: none !important;}
+.shuoshuo-avatar {width: 44px;height: 44px;border-radius: 50%;object-fit: cover;flex-shrink: 0;}
+.shuoshuo-card-body {flex: 1;min-width: 0;padding: 15px 15px 15px 5px;}
+/* 覆盖 list-one 的菱形遮罩 */
+.shuoshuo-post .list-post-author {order: unset !important;display: inline !important;}
+.shuoshuo-post .post-meta {border-top: 1px dashed #eee;margin-top: 0;padding-top: 8px;}
+[data-bs-theme="dark"] .shuoshuo-post .post-meta {border-top-color: rgba(255,255,255,0.08);}
+
 /* ====== 卡片底部操作栏 ====== */
 .timeline-card-footer {display: flex;align-items: center;justify-content: space-between;flex-wrap: wrap;padding: 10px 20px 14px;border-top: 1px solid #f0f0f0;gap: 8px;}
 
