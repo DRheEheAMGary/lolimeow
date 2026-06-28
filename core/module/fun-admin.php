@@ -208,7 +208,14 @@ function boxmoe_ensure_shuoshuo_category() {
 add_action('admin_init', 'boxmoe_ensure_shuoshuo_category');
 add_action('after_switch_theme', 'boxmoe_ensure_shuoshuo_category');
 
-// 快速发说说：侧边栏直接入口
+// 快速发说说：侧边栏入口（admin_init 提前捕获参数，防止被 WP 丢弃）
+function boxmoe_shuoshuo_capture_flag() {
+    if (isset($_GET['shuoshuo']) && $_GET['shuoshuo'] == '1') {
+        set_transient('shuoshuo_new_post_' . get_current_user_id(), true, 120);
+    }
+}
+add_action('admin_init', 'boxmoe_shuoshuo_capture_flag', 1);
+
 function boxmoe_add_shuoshuo_menu() {
     $shuoshuo_cat = get_category_by_slug('shuoshuo');
     $cat_id = $shuoshuo_cat ? $shuoshuo_cat->term_id : 1;
@@ -225,12 +232,21 @@ function boxmoe_add_shuoshuo_menu() {
 }
 add_action('admin_menu', 'boxmoe_add_shuoshuo_menu');
 
-// 进入「发说说」时预选说说分类
+// 预选说说分类 + 自动移除标记
 function boxmoe_preselect_shuoshuo_cat() {
-    if (isset($_GET['shuoshuo']) && $_GET['shuoshuo'] == '1') {
+    $uid = get_current_user_id();
+    $is_shuoshuo = get_transient('shuoshuo_new_post_' . $uid);
+    if ($is_shuoshuo) {
+        delete_transient('shuoshuo_new_post_' . $uid);
         $cat = get_category_by_slug('shuoshuo');
         if ($cat) {
-            echo '<script>document.addEventListener("DOMContentLoaded",function(){var cb=document.getElementById("in-category-'.$cat->term_id.'");if(cb)cb.checked=true;});</script>';
+            echo '<script>
+            (function tick(){
+                var cb = document.getElementById("in-category-'.$cat->term_id.'");
+                if (cb) { cb.checked = true; return; }
+                setTimeout(tick, 200);
+            })();
+            </script>';
         }
     }
 }

@@ -8,7 +8,43 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
 ?>
 <div class="<?php echo boxmoe_layout_setting(); ?> blog-post">
     <?php if (have_posts()) : ?>
-        <?php while (have_posts()) : the_post(); ?>
+        <?php while (have_posts()) : the_post(); 
+            $is_shuoshuo = has_category('shuoshuo');
+        ?>
+        <?php if ($is_shuoshuo): ?>
+        <!-- ====== 说说卡片：紧凑模式 ====== -->
+        <article class="post-list list-one row blog-border shuoshuo-post">
+            <div class="post-list-avatar" style="flex:0 0 auto;width:auto;padding:15px 0 15px 15px;">
+                <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
+                     data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
+                     alt="avatar" class="avatar lazy">
+            </div>
+            <div class="post-list-content" style="padding:15px 15px 15px 5px;">
+                <div class="post-meta-info" style="margin-bottom:8px;">
+                    <span class="list-post-author" style="font-size:0.85rem;font-weight:600;">
+                        <i class="fa fa-at"></i><?php the_author(); ?>
+                        <span class="dot"></span>
+                        <?php echo get_the_time('m-d H:i'); ?>
+                    </span>
+                </div>
+                <div class="shuoshuo-content">
+                    <?php the_content(); ?>
+                </div>
+                <div class="post-meta" style="margin:0;padding:8px 0 0;border-top:1px dashed #eee;gap:12px;display:flex;flex-wrap:wrap;align-items:center;">
+                    <span style="font-size:0.75rem;color:var(--bs-gray-700);">
+                        <i class="fa fa-street-view" style="margin-right:3px;"></i><?php echo getPostViews(get_the_ID()); ?>
+                    </span>
+                    <a href="<?php the_permalink(); ?>#comments-container" style="font-size:0.75rem;color:var(--bs-gray-700);text-decoration:none;">
+                        <i class="fa fa-comments-o" style="margin-right:3px;"></i><?php echo get_comments_number(); ?>
+                    </a>
+                    <a href="<?php the_permalink(); ?>" style="font-size:0.75rem;color:#D87CFF;text-decoration:none;margin-left:auto;">
+                        详情 <i class="fa fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </article>
+        <?php else: ?>
+        <!-- ====== 普通文章：缩略图 + 摘要 ====== -->
         <article class="post-list list-one row blog-border">
             <div class="post-list-img">
                 <figure class="mb-4 mb-lg-0 zoom-img">
@@ -63,6 +99,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                 </div>
             </div>
         </article>
+        <?php endif; ?>
         <?php endwhile; ?>
 
     <!-- 分页 -->
