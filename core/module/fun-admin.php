@@ -208,43 +208,55 @@ function boxmoe_ensure_shuoshuo_category() {
 add_action('admin_init', 'boxmoe_ensure_shuoshuo_category');
 add_action('after_switch_theme', 'boxmoe_ensure_shuoshuo_category');
 
-// 快速发说说：中继页 → 设标记 → 跳转编辑页（避免 WP 丢弃 URL 参数）
-function boxmoe_shuoshuo_redirect_page() {
-    $cat = get_category_by_slug('shuoshuo');
-    if (!$cat) return;
-    set_transient('shuoshuo_new_post_' . get_current_user_id(), $cat->term_id, 120);
-    wp_redirect(admin_url('post-new.php'));
-    exit;
-}
-
-function boxmoe_add_shuoshuo_menu() {
-    $icon = 'data:image/svg+xml;base64,' . base64_encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>');
-    add_menu_page(
-        '快速发说说',
-        '发说说',
-        'publish_posts',
-        'boxmoe-new-shuoshuo',
-        'boxmoe_shuoshuo_redirect_page',
-        $icon,
-        3
+// 仪表盘：快速发说说小部件
+function boxmoe_add_shuoshuo_dashboard_widget() {
+    wp_add_dashboard_widget(
+        'boxmoe_shuoshuo_widget',
+        '📝 快速发说说',
+        'boxmoe_shuoshuo_widget_html'
     );
 }
-add_action('admin_menu', 'boxmoe_add_shuoshuo_menu');
+add_action('wp_dashboard_setup', 'boxmoe_add_shuoshuo_dashboard_widget');
 
-// 预选说说分类
-function boxmoe_preselect_shuoshuo_cat() {
-    $uid = get_current_user_id();
-    $cat_id = get_transient('shuoshuo_new_post_' . $uid);
-    if ($cat_id) {
-        delete_transient('shuoshuo_new_post_' . $uid);
-        echo '<script>
-        (function tick(){
-            var cb = document.getElementById("in-category-' . intval($cat_id) . '");
-            if (cb) { cb.checked = true; return; }
-            setTimeout(tick, 200);
-        })();
-        </script>';
+function boxmoe_shuoshuo_widget_html() {
+    // 处理提交
+    if (isset($_POST['boxmoe_shuoshuo_submit']) && check_admin_referer('boxmoe_shuoshuo_widget')) {
+        $content = isset($_POST['boxmoe_shuoshuo_content']) ? wp_kses_post(trim($_POST['boxmoe_shuoshuo_content'])) : '';
+        if (!empty($content)) {
+            $cat = get_category_by_slug('shuoshuo');
+            if ($cat) {
+                $title = wp_trim_words(strip_tags($content), 8, '...') ?: '无标题说说';
+                $post_id = wp_insert_post(array(
+                    'post_title'   => $title,
+                    'post_content' => $content,
+                    'post_status'  => 'publish',
+                    'post_author'  => get_current_user_id(),
+                    'post_category' => array($cat->term_id),
+                ));
+                if (!is_wp_error($post_id)) {
+                    echo '<div class="notice notice-success inline"><p>✅ 说说发布成功！<a href="' . get_permalink($post_id) . '" target="_blank">查看</a></p></div>';
+                } else {
+                    echo '<div class="notice notice-error inline"><p>❌ 发布失败：' . esc_html($post_id->get_error_message()) . '</p></div>';
+                }
+            } else {
+                echo '<div class="notice notice-error inline"><p>❌ 说说分类不存在，请刷新后台自动创建</p></div>';
+            }
+        } else {
+            echo '<div class="notice notice-error inline"><p>❌ 内容不能为空</p></div>';
+        }
     }
-}
-add_action('admin_footer-post-new.php', 'boxmoe_preselect_shuoshuo_cat');  
-add_action('login_head', 'boxmoe_login_logo'); 	
+    ?>
+    <form method="post" style="margin:10px 0;">
+        <?php wp_nonce_field('boxmoe_shuoshuo_widget'); ?>
+        <textarea name="boxmoe_shuoshuo_content" rows="2" placeholder="分享新鲜事..." 
+                  style="width:100%;resize:vertical;padding:8px;border-radius:4px;border:1px solid #ddd;font-size:13px;min-height:60px;"
+                  maxlength="2000"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+            <span style="font-size:11px;color:#999;">直接发布，自动归入「说说」分类</span>
+            <button type="submit" name="boxmoe_shuoshuo_submit" class="button button-primary" style="font-size:12px;">
+                🚀 发布说说
+            </button>
+        </div>
+    </form>
+    <?php
+} 	
