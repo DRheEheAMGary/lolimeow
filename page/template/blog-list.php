@@ -17,7 +17,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
             <div class="shuoshuo-avatar-wrap">
                 <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
                      data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
-                     alt="avatar" class="shuoshuo-avatar lazy">
+                     alt="avatar" class="shuoshuo-avatar lazy" style="width:44px;height:44px;border-radius:50%;object-fit:cover;clip-path:none;">
             </div>
             <div class="shuoshuo-card-body">
                 <div class="post-meta-info" style="margin-bottom:8px;">
@@ -49,7 +49,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
             <div class="post-list-img">
                 <figure class="mb-4 mb-lg-0 zoom-img">
                     <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" title="<?php the_title(); ?>">
-                        <img src="<?php boxmoe_lazy_load_images(); ?>" 
+                        <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
                              data-src="<?php echo boxmoe_article_thumbnail_src(); ?>" 
                              alt="<?php the_title(); ?>" class="img-fluid rounded-3 lazy">
                     </a>
@@ -78,7 +78,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                 </div>
                 <div class="post-meta align-items-center">
                     <div class="post-list-avatar">
-                        <img src="<?php boxmoe_lazy_load_images(); ?>" 
+                        <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
                              data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
                              alt="avatar" class="avatar lazy">
                     </div>

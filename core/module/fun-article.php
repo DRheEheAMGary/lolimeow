@@ -39,18 +39,18 @@ add_filter('post_thumbnail_size', 'boxmoe_article_thumbnail_size');
 // 插件 fe meta: _ai_summary_generator_summary + _ai_summary_generator_last_modified
 // 插件前端: AI_Summary_Generator_Frontend::the_content + ::get_the_excerpt
 
-// Step 1: save_post_post 最早介入，移除插件钩子 + 屏蔽 option
+// Step 1: save_post_post 最早介入，说说时移除插件钩子，不说说不干涉
 function boxmoe_shuoshuo_block_ai_save($post_id) {
-    // 移除插件 save_post_post（无论是不是说说，尽早卸掉）
-    remove_action('save_post_post', array('AI_Summary_Generator_Admin', 'ai_summary_generator_update_on_post_save'), 20);
-    
-    if (has_category('shuoshuo', $post_id)) {
-        // 临时让 option 返回 no，防止其他入口调用
-        add_filter('pre_option_ai_summary_generator_update_on_post_update', function(){ return 'no'; }, 9999);
-        // 清理元数据
-        delete_post_meta($post_id, '_ai_summary_generator_summary');
-        delete_post_meta($post_id, '_ai_summary_generator_last_modified');
+    if (!has_category('shuoshuo', $post_id)) {
+        return; // 非说说文章，让插件正常工作
     }
+    // 移除插件 save_post_post，阻止自动生成 AI 摘要
+    remove_action('save_post_post', array('AI_Summary_Generator_Admin', 'ai_summary_generator_update_on_post_save'), 20);
+    // 临时让 option 返回 no，防止其他入口调用
+    add_filter('pre_option_ai_summary_generator_update_on_post_update', function(){ return 'no'; }, 9999);
+    // 清理已有 AI 元数据
+    delete_post_meta($post_id, '_ai_summary_generator_summary');
+    delete_post_meta($post_id, '_ai_summary_generator_last_modified');
 }
 add_action('save_post_post', 'boxmoe_shuoshuo_block_ai_save', 1);
 
