@@ -208,46 +208,42 @@ function boxmoe_ensure_shuoshuo_category() {
 add_action('admin_init', 'boxmoe_ensure_shuoshuo_category');
 add_action('after_switch_theme', 'boxmoe_ensure_shuoshuo_category');
 
-// 快速发说说：侧边栏入口（admin_init 提前捕获参数，防止被 WP 丢弃）
-function boxmoe_shuoshuo_capture_flag() {
-    if (isset($_GET['shuoshuo']) && $_GET['shuoshuo'] == '1') {
-        set_transient('shuoshuo_new_post_' . get_current_user_id(), true, 120);
-    }
+// 快速发说说：中继页 → 设标记 → 跳转编辑页（避免 WP 丢弃 URL 参数）
+function boxmoe_shuoshuo_redirect_page() {
+    $cat = get_category_by_slug('shuoshuo');
+    if (!$cat) return;
+    set_transient('shuoshuo_new_post_' . get_current_user_id(), $cat->term_id, 120);
+    wp_redirect(admin_url('post-new.php'));
+    exit;
 }
-add_action('admin_init', 'boxmoe_shuoshuo_capture_flag', 1);
 
 function boxmoe_add_shuoshuo_menu() {
-    $shuoshuo_cat = get_category_by_slug('shuoshuo');
-    $cat_id = $shuoshuo_cat ? $shuoshuo_cat->term_id : 1;
     $icon = 'data:image/svg+xml;base64,' . base64_encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>');
     add_menu_page(
         '快速发说说',
         '发说说',
         'publish_posts',
-        'post-new.php?shuoshuo=1',
-        '',
+        'boxmoe-new-shuoshuo',
+        'boxmoe_shuoshuo_redirect_page',
         $icon,
         3
     );
 }
 add_action('admin_menu', 'boxmoe_add_shuoshuo_menu');
 
-// 预选说说分类 + 自动移除标记
+// 预选说说分类
 function boxmoe_preselect_shuoshuo_cat() {
     $uid = get_current_user_id();
-    $is_shuoshuo = get_transient('shuoshuo_new_post_' . $uid);
-    if ($is_shuoshuo) {
+    $cat_id = get_transient('shuoshuo_new_post_' . $uid);
+    if ($cat_id) {
         delete_transient('shuoshuo_new_post_' . $uid);
-        $cat = get_category_by_slug('shuoshuo');
-        if ($cat) {
-            echo '<script>
-            (function tick(){
-                var cb = document.getElementById("in-category-'.$cat->term_id.'");
-                if (cb) { cb.checked = true; return; }
-                setTimeout(tick, 200);
-            })();
-            </script>';
-        }
+        echo '<script>
+        (function tick(){
+            var cb = document.getElementById("in-category-' . intval($cat_id) . '");
+            if (cb) { cb.checked = true; return; }
+            setTimeout(tick, 200);
+        })();
+        </script>';
     }
 }
 add_action('admin_footer-post-new.php', 'boxmoe_preselect_shuoshuo_cat');  
