@@ -13,7 +13,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
         ?>
         <?php if ($is_shuoshuo): ?>
         <!-- ====== 说说卡片：紧凑模式 ====== -->
-        <article class="post-list blog-border shuoshuo-post">
+        <article class="shuoshuo-post">
             <div class="shuoshuo-avatar-wrap">
                 <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
                      data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
