@@ -1002,7 +1002,7 @@ footer .logo {height:35px;}
 .shuoshuo-card .timeline-card-header {padding-bottom: 4px;}
 
 /* ====== 文章列表说说卡片（完全独立样式，不受 list-one 干扰） ====== */
-.shuoshuo-post {display: flex !important;flex-wrap: nowrap !important;align-items: flex-start !important;padding: 0 !important;margin-bottom: 2.5rem !important;background-color: var(--bs-white);border-radius: 12px;overflow: hidden;}
+.shuoshuo-post {display: flex !important;flex-wrap: nowrap !important;align-items: flex-start !important;padding: 0 !important;margin-bottom: 2.5rem !important;background-color: var(--bs-white);border: 2px solid var(--bs-dark);border-radius: 12px;overflow: hidden;}
 .shuoshuo-post .shuoshuo-avatar-wrap {flex: 0 0 auto;padding: 16px 0 16px 16px;}
 .shuoshuo-post .shuoshuo-avatar-wrap::after {display: none !important;}
 .shuoshuo-post .shuoshuo-avatar {width: 44px;height: 44px;border-radius: 50% !important;object-fit: cover;clip-path: none !important;border: none !important;}
@@ -1023,10 +1023,14 @@ footer .logo {height:35px;}
 .shuoshuo-post .shuoshuo-link {font-size: 0.75rem;color: #D87CFF;text-decoration: none;margin-left: auto;display: inline-flex;align-items: center;gap: 3px;}
 .shuoshuo-post .shuoshuo-link:hover {color: #A34F9B;}
 /* 暗色模式 */
-[data-bs-theme="dark"] .shuoshuo-post {background: #1a1a2e;}
+[data-bs-theme="dark"] .shuoshuo-post {background: var(--bs-body-bg);border-color: rgba(255,255,255,0.12);}
 [data-bs-theme="dark"] .shuoshuo-post .shuoshuo-author {color: #eee;}
+[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-time {color: #999;}
 [data-bs-theme="dark"] .shuoshuo-post .shuoshuo-content {color: #ccc;}
-[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-actions {border-top-color: rgba(255,255,255,0.08);}
+[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-content p {color: #ccc;}
+[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-actions {border-top-color: rgba(255,255,255,0.1);}
+[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-stat {color: #999;}
+[data-bs-theme="dark"] .shuoshuo-post .shuoshuo-stat:hover {color: #ccc;}
 
 /* ====== 旧版兼容删除 ====== */
 
