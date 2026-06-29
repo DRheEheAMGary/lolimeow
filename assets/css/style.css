@@ -1002,7 +1002,7 @@ footer .logo {height:35px;}
 .shuoshuo-card .timeline-card-header {padding-bottom: 4px;}
 
 /* ====== 文章列表说说卡片（完全独立样式，不受 list-one 干扰） ====== */
-.shuoshuo-post {display: flex !important;flex-wrap: nowrap !important;align-items: flex-start !important;padding: 0 !important;margin-bottom: 2.5rem !important;background-color: var(--bs-white) !important;border: 2px solid var(--bs-dark) !important;border-radius: 12px;overflow: hidden;}
+.shuoshuo-post {box-sizing: border-box;width: 100%;display: flex !important;flex-wrap: nowrap !important;align-items: flex-start !important;padding: 0 !important;margin-bottom: 2.5rem !important;background-color: var(--bs-white) !important;border: 2px solid var(--bs-dark) !important;border-radius: 12px;overflow: hidden;}
 .shuoshuo-post .shuoshuo-avatar-wrap {flex: 0 0 auto;padding: 16px 0 16px 16px;}
 .shuoshuo-post .shuoshuo-avatar-wrap::after {display: none !important;}
 .shuoshuo-post .shuoshuo-avatar {width: 44px;height: 44px;border-radius: 50% !important;object-fit: cover;clip-path: none !important;border: none !important;}
