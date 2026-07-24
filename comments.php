@@ -200,8 +200,15 @@ if(!isset($user_ID)) {
                             </div>
                             <?php if (!is_user_logged_in() &&  get_boxmoe('boxmoe_comment_login_switch')) :?>
                                 <?php else:?>
+                            <?php
+                            // 预加载自定义表情包数据（插件 WP自定义表情包）
+                            $custom_emoji_packs = function_exists('wp_custom_emojis_get_all_packs') ? wp_custom_emojis_get_all_packs() : array();
+                            ?>
                             <div class="comment-form-comment">
-                                <textarea id="comment" name="comment" tabindex="4" placeholder="写下您的评论..." rows="4" required></textarea>                                
+                                <textarea id="comment" name="comment" tabindex="4" placeholder="写下您的评论..." rows="4" required></textarea>
+                                <?php if (!empty($custom_emoji_packs)): ?>
+                                <script>var wpCustomEmojiPacks = <?php echo json_encode($custom_emoji_packs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;</script>
+                                <?php endif; ?>
                                 <div class="comment-toolbar">
                                     <div class="toolbar-left">
                                         <button type="button" class="toolbar-btn emoji-btn" title="插入表情">
@@ -211,6 +218,9 @@ if(!isset($user_ID)) {
                                             <div class="emoji-tabs">
                                                 <span data-tab="emoji" class="active">表情</span>
                                                 <span data-tab="custom">颜文字</span>
+                                                <?php foreach ($custom_emoji_packs as $pack): ?>
+                                                <span data-tab="<?php echo esc_attr($pack['id']); ?>"><?php echo esc_html($pack['name']); ?></span>
+                                                <?php endforeach; ?>
                                             </div>
                                             <div class="emoji-content"></div>
                                         </div>
@@ -225,7 +235,6 @@ if(!isset($user_ID)) {
                                         </label>
                                         <div class="form-submit">
                                              <?php do_action('comment_form', $post->ID); ?>
-                                            <?php if(function_exists('cfturnstile_field_show')): cfturnstile_field_show('', '', 'wordpress-comment', '-c'.wp_rand()); endif; ?>
                                             <button type="submit" name="submit" type="submit" id="submit" tabindex="5" class="submit-btn">
                                                 <i class="fa fa-paper-plane"></i> 发表评论
                                             </button>
@@ -245,6 +254,9 @@ if(!isset($user_ID)) {
                                     </div>
                                 </div>
                             </div>
+                            <?php if(function_exists('cfturnstile_field_show')): ?>
+                            <div class="comment-turnstile" style="margin-top:16px;"><?php cfturnstile_field_show('', '', 'wordpress-comment', '-c'.wp_rand()); ?></div>
+                            <?php endif; ?>
                             <?php endif;?>                          
                         </form>  
                     </div>

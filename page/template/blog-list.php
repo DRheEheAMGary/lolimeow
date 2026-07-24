@@ -15,20 +15,24 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
         <!-- ====== 说说卡片：紧凑模式 ====== -->
         <article class="shuoshuo-post">
             <div class="shuoshuo-avatar-wrap">
-                <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
-                     data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
+                <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>">
+                <img src="<?php echo boxmoe_lazy_load_images(); ?>"
+                     data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>"
                      alt="avatar" class="shuoshuo-avatar lazy">
+                </a>
             </div>
             <div class="shuoshuo-card-body">
                 <div class="shuoshuo-meta-top">
                     <span class="shuoshuo-author">
-                        <i class="fa fa-at"></i><?php the_author(); ?>
+                        <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a>
                     </span>
                     <span class="shuoshuo-dot"></span>
                     <span class="shuoshuo-time"><?php echo get_the_time('m-d H:i'); ?></span>
                 </div>
                 <div class="shuoshuo-content">
+                    <a href="<?php the_permalink(); ?>" style="color:inherit;text-decoration:none;">
                     <?php the_content(); ?>
+                    </a>
                 </div>
                 <div class="shuoshuo-actions">
                     <span class="shuoshuo-stat">
@@ -36,9 +40,6 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                     </span>
                     <a href="<?php the_permalink(); ?>#comments-container" class="shuoshuo-stat">
                         <i class="fa fa-comments-o"></i><?php echo get_comments_number(); ?>
-                    </a>
-                    <a href="<?php the_permalink(); ?>" class="shuoshuo-link">
-                        详情 <i class="fa fa-arrow-right"></i>
                     </a>
                 </div>
             </div>
@@ -78,9 +79,11 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                 </div>
                 <div class="post-meta align-items-center">
                     <div class="post-list-avatar">
-                        <img src="<?php echo boxmoe_lazy_load_images(); ?>" 
-                             data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
+                        <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>">
+                        <img src="<?php echo boxmoe_lazy_load_images(); ?>"
+                             data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>"
                              alt="avatar" class="avatar lazy">
+                        </a>
                     </div>
                     <div class="post-meta-info">
                         <div class="post-meta-stats">
@@ -92,7 +95,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                             </span>
                         </div>
                         <span class="list-post-author">
-                            <i class="fa fa-at"></i><?php the_author(); ?>
+                            <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a>
                             <span class="dot"></span><?php echo get_the_time('Y-m-d'); ?>
                         </span>
                     </div>

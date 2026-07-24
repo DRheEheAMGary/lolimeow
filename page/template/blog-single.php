@@ -28,15 +28,19 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                             </a>
                         <?php } ?>
                       </div>
+                      <?php if (!has_category('shuoshuo')): ?>
                       <h1 class="single-title"><?php the_title(); ?></h1>
+                      <?php endif; ?>
                       <hr class="horizontal dark">
                       <div class="single-meta-box">
                         <div class="single-info-left">
                           <div class="single-meta">
+                              <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>">
                               <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 100); ?>" class="avatar lazy" alt="avatar">
+                              </a>
                             <div class="single-author-name">
                               <div class="single-author-info">
-                                <a href="#" class="name">
+                                <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" class="name">
                                   <i class="fa fa-at"></i><?php the_author(); ?></a>
                                 <span class="data">
                                   <i class="fa fa-clock-o"></i><?php the_date(); ?></span>

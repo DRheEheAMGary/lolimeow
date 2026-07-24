@@ -88,9 +88,9 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
               <div class="user-panel-content">
                 <div class="mobile-user-wrapper">
                   <div class="mobile-logged-menu">
-                    <a href="<?php echo boxmoe_user_center_link_page(); ?>" class="mobile-menu-item">
+                    <a href="<?php echo boxmoe_get_user_profile_url(get_current_user_id()); ?>" class="mobile-menu-item">
                       <i class="fa fa-user-circle"></i>
-                      <span>会员中心</span></a>
+                      <span>个人主页</span></a>
                       <?php if(current_user_can('administrator')): ?>
                     <a href="<?php echo admin_url(); ?>" class="mobile-menu-item">
                       <i class="fa fa-cog"></i>
@@ -134,7 +134,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
             </div>
             <?php if(is_user_logged_in() && get_boxmoe('boxmoe_sign_in_link_switch')): ?>
             <div class="mobile-logged-user-wrapper d-block d-lg-none">
-              <a href="<?php echo boxmoe_user_center_link_page(); ?>" class="user-info-wrap d-flex align-items-center">
+              <a href="<?php echo boxmoe_get_user_profile_url(get_current_user_id()); ?>" class="user-info-wrap d-flex align-items-center">
                 <div class="user-avatar">
                   <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 100); ?>" alt="avatar" class="img-fluid rounded-3 lazy">
                 </div>
@@ -210,7 +210,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
                  <?php if(is_user_logged_in() && get_boxmoe('boxmoe_sign_in_link_switch')):  ?>
                 <div class="logged-user-wrapper d-none d-lg-flex">
                   <div class="user-info-wrap d-flex align-items-center dropdown">
-                    <a href="<?php echo boxmoe_user_center_link_page(); ?>" class="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a href="<?php echo boxmoe_get_user_profile_url(get_current_user_id()); ?>" class="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
                       <div class="user-avatar">
                       <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 100); ?>" alt="avatar" class="img-fluid rounded-3 lazy">
                     </div>
@@ -221,8 +221,8 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                       <li>
-                        <a class="dropdown-item" href="<?php echo boxmoe_user_center_link_page(); ?>">
-                          <i class="fa fa-user-circle"></i>会员中心</a>
+                        <a class="dropdown-item" href="<?php echo boxmoe_get_user_profile_url(get_current_user_id()); ?>">
+                          <i class="fa fa-user-circle"></i>个人主页</a>
                       </li>
                       <?php if(current_user_can('administrator')): ?>
                       <li>
@@ -245,6 +245,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
         </div>
       </nav>
     </header>
+    <?php if (!get_query_var('boxmoe_user_profile')): ?>
     <section class="boxmoe_header_banner">
       <div class="boxmoe_header_banner_img">
         <img src="<?php  boxmoe_banner_image(); ?>" alt="boxmoe_header_banner_img">
@@ -267,6 +268,9 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
         </svg>
       </div>
     </section>
+    <?php else: ?>
+    <div style="padding-top:1.5rem;"></div>
+    <?php endif; ?>
     <section class="boxmoe-container container">
       <div class="breadcrumb-head">
         <span>
@@ -298,6 +302,8 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
               $template = get_page_template_slug();
               if($template && isset($template_names[$template])) {
                   echo $template_names[$template];
+              } elseif(get_query_var('boxmoe_user_profile')) {
+                  echo 'USER PROFILE';
               } else {
                   echo 'PAGE';
               }

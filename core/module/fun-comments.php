@@ -24,17 +24,27 @@ function boxmoe_comment($comment, $args = array(), $depth = 1) {
     ?>
     <div id="comment-<?php comment_ID(); ?>" class="comment-item <?php echo $depth > 1 ? 'child' : 'parent'; ?>">
             <div class="comment-avatar">
+            <?php if ($comment->user_id && function_exists('boxmoe_get_user_profile_url')): ?>
+            <a href="<?php echo esc_url(boxmoe_get_user_profile_url($comment->user_id)); ?>">
+            <?php endif; ?>
             <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url($comment->comment_author_email, 60); ?>" alt="评论头像" class="lazy">
+            <?php if ($comment->user_id && function_exists('boxmoe_get_user_profile_url')): ?>
+            </a>
+            <?php endif; ?>
             </div>
         <div class="comment-content">
             <div class="comment-meta">
                 <span class="comment-author">
-                    <?php 
-                    $comment_url = get_comment_author_url();
-                    if (!empty($comment_url) && $comment_url !== 'http://') {
-                        echo '<a href="' . esc_url($comment_url) . '" target="_blank" rel="nofollow">' . get_comment_author() . '</a>';
+                    <?php
+                    if ($comment->user_id && function_exists('boxmoe_get_user_profile_url')) {
+                        echo '<a href="' . esc_url(boxmoe_get_user_profile_url($comment->user_id)) . '">' . get_comment_author() . '</a>';
                     } else {
-                        comment_author();
+                        $comment_url = get_comment_author_url();
+                        if (!empty($comment_url) && $comment_url !== 'http://') {
+                            echo '<a href="' . esc_url($comment_url) . '" target="_blank" rel="nofollow">' . get_comment_author() . '</a>';
+                        } else {
+                            comment_author();
+                        }
                     }
                     ?>
                 </span>
@@ -51,13 +61,13 @@ function boxmoe_comment($comment, $args = array(), $depth = 1) {
                          $current_user_id == $comment->user_id || 
                          ($comment->comment_parent > 0 && $current_user_id == get_comment($comment->comment_parent)->user_id))
                     ) {
-                        echo esc_html(get_comment_text());
+                        echo wp_kses_post(get_comment_text());
                         echo '<span class="private-comment-badge">仅作者可见</span>';
                     } else {
                         echo '<p class="private-comment-notice">此评论仅作者可见</p>';
                     }
                 } else {
-                    echo esc_html(get_comment_text());
+                    echo wp_kses_post(get_comment_text());
                 }
                 ?>   
                 <?php if ( $comment->comment_approved == '0' ) : ?>
@@ -91,7 +101,7 @@ function boxmoe_comment_add_at($comment_text, $comment) {
             $comment_text = sprintf(
                 '<span class="comment-at">@%s</span> %s',
                 esc_html($parent_author),
-                esc_html($comment_text)
+                wp_kses_post($comment_text)
             );
         }
     }

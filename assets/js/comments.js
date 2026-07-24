@@ -159,6 +159,13 @@ function initCommentToolbar() {
             ]        
         };
 
+        // 注入自定义表情包数据到 emojis 对象（Tab 已由 PHP 渲染）
+        if (typeof wpCustomEmojiPacks !== 'undefined' && wpCustomEmojiPacks.length > 0) {
+            wpCustomEmojiPacks.forEach(function(pack) {
+                emojis[pack.id] = pack;
+            });
+        }
+
         const emojiContent = emojiPanel.querySelector('.emoji-content');
         const emojiTabs = emojiPanel.querySelectorAll('.emoji-tabs span');
                 emojiTabs.forEach(tab => {
@@ -167,15 +174,36 @@ function initCommentToolbar() {
                 emojiTabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 emojiContent.innerHTML = '';
-                emojis[type].forEach(emoji => {
-                    const span = document.createElement('span');
-                    span.textContent = emoji;
-                    span.addEventListener('click', () => {
-                        insertAtBoxmoe(commentTextarea, emoji);
-                        emojiPanel.style.display = 'none';
+
+                var data = emojis[type];
+                if (Array.isArray(data)) {
+                    // 标准 emoji 或颜文字（字符串数组）
+                    data.forEach(function(item) {
+                        const span = document.createElement('span');
+                        span.textContent = item;
+                        span.addEventListener('click', function() {
+                            insertAtBoxmoe(commentTextarea, item);
+                            emojiPanel.style.display = 'none';
+                        });
+                        emojiContent.appendChild(span);
                     });
-                    emojiContent.appendChild(span);
-                });
+                } else if (data && data.emojis && typeof data.emojis === 'object') {
+                    // 插件表情包（code → filename 映射）
+                    Object.keys(data.emojis).forEach(function(code) {
+                        const img = document.createElement('img');
+                        img.src = data.url + data.emojis[code];
+                        img.title = code;
+                        img.alt = code;
+                        img.style.cssText = 'width:52px;height:52px;cursor:pointer;margin:4px;border-radius:6px;object-fit:contain;transition:transform 0.2s;';
+                        img.addEventListener('mouseenter', function() { this.style.transform = 'scale(1.2)'; });
+                        img.addEventListener('mouseleave', function() { this.style.transform = 'scale(1)'; });
+                        img.addEventListener('click', function() {
+                            insertAtBoxmoe(commentTextarea, code);
+                            emojiPanel.style.display = 'none';
+                        });
+                        emojiContent.appendChild(img);
+                    });
+                }
             });
             
             // 默认激活emoji标签

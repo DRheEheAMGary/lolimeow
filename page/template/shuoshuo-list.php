@@ -24,14 +24,9 @@ $args = array(
 $shuoshuo_query = new WP_Query($args);
 ?>
 <div class="<?php echo boxmoe_layout_setting(); ?> blog-post">
-    <?php if ($shuoshuo_cat) : ?>
+    <?php if ($shuoshuo_cat && !empty($shuoshuo_cat->description)) : ?>
     <div class="shuoshuo-header mb-5 text-center">
-        <h2 class="shuoshuo-title">
-            <i class="fa fa-clock-o"></i> <?php echo esc_html($shuoshuo_cat->name); ?>
-        </h2>
-        <?php if (!empty($shuoshuo_cat->description)) : ?>
         <p class="shuoshuo-desc text-muted"><?php echo esc_html($shuoshuo_cat->description); ?></p>
-        <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -126,14 +121,16 @@ $shuoshuo_query = new WP_Query($args);
         <?php while ($shuoshuo_query->have_posts()) : $shuoshuo_query->the_post(); ?>
         <article class="post-list list-one row blog-border shuoshuo-post">
             <div class="post-list-avatar" style="flex:0 0 auto;width:auto;padding:15px 0 15px 10px;">
-                <img src="<?php boxmoe_lazy_load_images(); ?>" 
-                     data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>" 
+                <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>">
+                <img src="<?php boxmoe_lazy_load_images(); ?>"
+                     data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>"
                      alt="avatar" class="avatar lazy">
+                </a>
             </div>
             <div class="post-list-content" style="padding:15px 10px 15px 5px;">
                 <div class="post-meta-info" style="margin-bottom:8px;">
                     <span class="list-post-author" style="font-size:0.85rem;font-weight:600;">
-                        <i class="fa fa-at"></i><?php the_author(); ?>
+                        <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a>
                         <span class="dot"></span>
                         <?php 
                         $post_time = get_the_time('U');
@@ -146,7 +143,9 @@ $shuoshuo_query = new WP_Query($args);
                     </span>
                 </div>
                 <div class="shuoshuo-content" style="margin-bottom:10px;">
+                    <a href="<?php the_permalink(); ?>" style="color:inherit;text-decoration:none;">
                     <?php the_content(); ?>
+                    </a>
                 </div>
                 <div class="post-meta" style="margin:0;padding:8px 0 0;border-top:1px dashed #eee;gap:12px;display:flex;flex-wrap:wrap;align-items:center;">
                     <?php if(get_boxmoe('boxmoe_like_switch')): ?>
@@ -160,9 +159,6 @@ $shuoshuo_query = new WP_Query($args);
                     <span style="font-size:0.75rem;color:var(--bs-gray-700);">
                         <i class="fa fa-street-view" style="margin-right:3px;"></i><?php echo getPostViews(get_the_ID()); ?>
                     </span>
-                    <a href="<?php the_permalink(); ?>" style="font-size:0.75rem;color:#D87CFF;text-decoration:none;margin-left:auto;">
-                        详情 <i class="fa fa-arrow-right"></i>
-                    </a>
                 </div>
             </div>
         </article>
