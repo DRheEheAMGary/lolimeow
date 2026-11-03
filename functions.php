@@ -33,6 +33,8 @@ require_once  get_stylesheet_directory() . '/core/module/fun-msg.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-no-category.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-shortcode.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-user-profile.php';
+require_once  get_stylesheet_directory() . '/core/module/fun-contribution.php';
+require_once  get_stylesheet_directory() . '/core/module/fun-follow.php';
+require_once  get_stylesheet_directory() . '/core/module/fun-feedback.php';
 //boxmoe.com===自定义代码
-
 

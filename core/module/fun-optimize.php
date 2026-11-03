@@ -36,15 +36,30 @@ function boxmoe_disable_add_auto_sizes( $add_auto_sizes ) {
 }
 add_filter( 'wp_img_tag_add_auto_sizes', 'boxmoe_disable_add_auto_sizes' );
 
+// 活动侧栏包含区块时，保留区块容器所依赖的布局样式。
+function boxmoe_has_active_block_widgets() {
+    $sidebars = wp_get_sidebars_widgets();
+    foreach ($sidebars as $sidebar => $widgets) {
+        if ($sidebar === 'wp_inactive_widgets' || !is_array($widgets)) continue;
+        foreach ($widgets as $widget_id) {
+            if (strpos($widget_id, 'block-') === 0) return true;
+        }
+    }
+    return false;
+}
+
 // 删除全局样式内联 CSS--------------------------boxmoe.com--------------------------
 function boxmoe_remove_global_inline_css() {
+    if (boxmoe_has_active_block_widgets()) return;
     remove_action('wp_head', 'wp_print_styles');
 }
 add_action('init', 'boxmoe_remove_global_inline_css');
 add_action('after_setup_theme', function() {
+    if (boxmoe_has_active_block_widgets()) return;
     remove_action('wp_enqueue_scripts', 'wp_enqueue_global_styles');
 }, 0);
 add_action( 'wp_enqueue_scripts', function() {
+    if (boxmoe_has_active_block_widgets()) return;
     wp_dequeue_style( 'global-styles-inline' );
     wp_dequeue_style( 'classic-theme-styles' );
     wp_dequeue_style( 'wp-block-library' );
@@ -77,6 +92,7 @@ function boxmoe_disable_gutenberg() {
     remove_action('wp_enqueue_scripts', 'wp_common_block_scripts_and_styles'); 
     add_action('wp_enqueue_scripts', 'fanly_remove_styles_inline');
     function fanly_remove_styles_inline() {
+    if (boxmoe_has_active_block_widgets()) return;
     wp_deregister_style('global-styles');
     wp_dequeue_style('global-styles');
     wp_dequeue_style('wp-block-library');
@@ -242,7 +258,6 @@ function boxmoe_disable_pingbacks() {
 }
 add_action('init', 'boxmoe_disable_pingbacks');
 }
-
 
 
 

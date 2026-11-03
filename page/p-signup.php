@@ -37,6 +37,22 @@ if (is_user_logged_in()){
                         <a href="<?php echo boxmoe_sign_in_link_page(); ?>" class="text-primary">登录</a>
                      </p>
                   </div>
+                  <?php if (function_exists('sso_button_html')): ?>
+                  <div class="mb-3">
+                     <?php echo sso_button_html('btn btn-primary w-100'); ?>
+                  </div>
+                  <div class="text-center text-muted small mb-3">
+                     推荐用统一认证一键注册，账号自动打通全站
+                     <hr class="my-3">
+                     或使用站内账号注册
+                  </div>
+                  <?php endif; ?>
+                  <?php if (function_exists('sso_register_disabled') && sso_register_disabled()): ?>
+                  <style>#signupform{display:none !important}</style>
+                  <p class="text-center text-muted mb-4">
+                     站内自助注册已关闭，请使用上方「DRheEheAM 账号」一键注册
+                  </p>
+                  <?php endif; ?>
                   <form class="needs-validation mb-6" id="signupform" novalidate="">
                            <div class="mb-3">
                               <label for="signupFullnameInput" class="form-label">用户名<span class="text-danger">*</span></label>

@@ -39,6 +39,12 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                            </a>
                         </li>
                         <li class="nav-item">
+                           <a class="nav-link <?php if($items == 'settings') {?>active<?php }?>" href="?items=settings">
+                              <i class="align-bottom fa fa-cog"></i>
+                              <span class="ms-2">个人设置</span>
+                           </a>
+                        </li>
+                        <li class="nav-item">
                            <a class="nav-link <?php if($items == 'order') {?>active<?php }?>" href="?items=order">
                               <i class="align-bottom fa fa-shopping-cart"></i>
                               <span class="ms-2">订单管理</span>

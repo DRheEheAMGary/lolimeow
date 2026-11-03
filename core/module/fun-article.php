@@ -478,15 +478,22 @@ function boxmoe_submit_shuoshuo() {
     if (!is_user_logged_in()) {
         wp_send_json_error(['message' => '请先登录']);
     }
+    if (!current_user_can('publish_posts')) {
+        wp_send_json_error(['message' => '当前账号没有作者权限，无法发布说说'], 403);
+    }
     if (!check_ajax_referer('shuoshuo_nonce', 'security', false)) {
         wp_send_json_error(['message' => '安全验证失败，请刷新页面重试']);
     }
-    $content = isset($_POST['content']) ? wp_kses_post(trim($_POST['content'])) : '';
-    if (empty($content)) {
+    $markdown = isset($_POST['markdown']) ? trim(wp_unslash($_POST['markdown'])) : '';
+    $content = isset($_POST['content']) ? wp_kses_post(wp_unslash($_POST['content'])) : '';
+    if ($markdown === '') {
         wp_send_json_error(['message' => '内容不能为空']);
     }
-    if (mb_strlen(strip_tags($content)) > 5000) {
+    if (mb_strlen($markdown) > 5000) {
         wp_send_json_error(['message' => '内容不能超过5000字']);
+    }
+    if (trim($content) === '') {
+        wp_send_json_error(['message' => 'Markdown 内容无法解析']);
     }
     // 频率限制：30秒内只能发一条
     $user_id = get_current_user_id();
@@ -498,7 +505,7 @@ function boxmoe_submit_shuoshuo() {
     if (!$shuoshuo_cat) {
         wp_send_json_error(['message' => '说说分类不存在，请先创建slug为shuoshuo的分类']);
     }
-    $title = wp_trim_words(strip_tags($content), 8, '...');
+    $title = wp_trim_words(wp_strip_all_tags($content), 8, '...');
     if (empty($title)) $title = '无标题说说';
     $post_data = array(
         'post_title'   => $title,
@@ -511,7 +518,199 @@ function boxmoe_submit_shuoshuo() {
     if (is_wp_error($post_id)) {
         wp_send_json_error(['message' => '发布失败：' . $post_id->get_error_message()]);
     }
+    update_post_meta($post_id, '_boxmoe_shuoshuo_markdown', $markdown);
     update_user_meta($user_id, '_last_shuoshuo_time', time());
-    wp_send_json_success(['message' => '发布成功！', 'post_id' => $post_id]);
+    wp_send_json_success([
+        'message' => '发布成功！',
+        'post_id' => $post_id,
+        'url' => get_permalink($post_id),
+    ]);
 }
 add_action('wp_ajax_submit_shuoshuo', 'boxmoe_submit_shuoshuo');
+
+/**
+ * Load the Markdown publisher only where it can be displayed.
+ */
+function boxmoe_has_markdown_shuoshuo_block($blocks) {
+    foreach ($blocks as $block) {
+        if (
+            ($block['blockName'] ?? '') === 'core/legacy-widget' &&
+            ($block['attrs']['idBase'] ?? '') === 'boxmoe_widget_markdown_shuoshuo'
+        ) {
+            return true;
+        }
+        if (!empty($block['innerBlocks']) && boxmoe_has_markdown_shuoshuo_block($block['innerBlocks'])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function boxmoe_has_active_markdown_shuoshuo_widget() {
+    if (is_active_widget(false, false, 'boxmoe_widget_markdown_shuoshuo', true)) {
+        return true;
+    }
+
+    $sidebars = wp_get_sidebars_widgets();
+    $block_widgets = get_option('widget_block', []);
+    foreach ($sidebars as $sidebar => $widget_ids) {
+        if ($sidebar === 'wp_inactive_widgets' || !is_array($widget_ids)) continue;
+        foreach ($widget_ids as $widget_id) {
+            if (!preg_match('/^block-(\d+)$/', $widget_id, $matches)) continue;
+            $content = $block_widgets[(int)$matches[1]]['content'] ?? '';
+            if ($content && boxmoe_has_markdown_shuoshuo_block(parse_blocks($content))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function boxmoe_markdown_shuoshuo_assets() {
+    if (!is_user_logged_in()) return;
+
+    $publisher_page = is_page_template([
+        'page/p-shuoshuo.php',
+        'page/p-markdown-shuoshuo.php',
+    ]);
+    $publisher_widget = boxmoe_has_active_markdown_shuoshuo_widget();
+    if (!$publisher_page && !$publisher_widget) return;
+
+    wp_enqueue_style(
+        'boxmoe-markdown-shuoshuo',
+        boxmoe_theme_url() . '/assets/css/markdown-shuoshuo.css',
+        [],
+        filemtime(get_template_directory() . '/assets/css/markdown-shuoshuo.css')
+    );
+    wp_enqueue_script(
+        'marked',
+        'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
+        [],
+        null,
+        true
+    );
+    wp_enqueue_script(
+        'boxmoe-markdown-shuoshuo',
+        boxmoe_theme_url() . '/assets/js/markdown-shuoshuo.js',
+        ['marked'],
+        filemtime(get_template_directory() . '/assets/js/markdown-shuoshuo.js'),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'boxmoe_markdown_shuoshuo_assets');
+
+/**
+ * Render a Markdown publisher shared by page templates and sidebar widgets.
+ */
+function boxmoe_render_markdown_shuoshuo_publisher($compact = false) {
+    if (!is_user_logged_in()) {
+        echo '<div class="markdown-shuoshuo-login text-center">';
+        echo '<p class="text-muted">登录后可以发布说说</p>';
+        echo '<a class="btn btn-primary btn-sm" href="' . esc_url(boxmoe_sign_in_link_page()) . '"><i class="fa fa-sign-in"></i> 登录</a>';
+        echo '</div>';
+        return;
+    }
+
+    $editor_id = wp_unique_id('markdown-shuoshuo-');
+    $can_publish = current_user_can('publish_posts');
+    ?>
+    <form class="markdown-shuoshuo-editor<?php echo $compact ? ' is-compact' : ''; ?>" data-markdown-shuoshuo data-can-publish="<?php echo $can_publish ? 'true' : 'false'; ?>">
+        <input type="hidden" name="security" value="<?php echo esc_attr(wp_create_nonce('shuoshuo_nonce')); ?>">
+        <div class="markdown-shuoshuo-toolbar" role="toolbar" aria-label="Markdown 编辑工具">
+            <button type="button" data-md-before="**" data-md-after="**" title="粗体"><i class="fa fa-bold"></i></button>
+            <button type="button" data-md-before="*" data-md-after="*" title="斜体"><i class="fa fa-italic"></i></button>
+            <button type="button" data-md-line="## " title="标题"><i class="fa fa-header"></i></button>
+            <button type="button" data-md-line="> " title="引用"><i class="fa fa-quote-left"></i></button>
+            <button type="button" data-md-line="- " title="无序列表"><i class="fa fa-list-ul"></i></button>
+            <button type="button" data-md-before="[" data-md-after="](https://)" title="链接"><i class="fa fa-link"></i></button>
+            <button type="button" data-md-before="`" data-md-after="`" title="行内代码"><i class="fa fa-code"></i></button>
+            <button type="button" class="markdown-preview-toggle" data-md-preview title="预览"><i class="fa fa-eye"></i></button>
+        </div>
+        <textarea id="<?php echo esc_attr($editor_id); ?>" class="markdown-shuoshuo-input" name="markdown" rows="<?php echo $compact ? 5 : 12; ?>" maxlength="5000" placeholder="使用 Markdown 写点什么..."></textarea>
+        <div class="markdown-shuoshuo-preview markdown-body" hidden></div>
+        <div class="markdown-shuoshuo-footer">
+            <span class="markdown-shuoshuo-count">0/5000</span>
+            <span class="markdown-shuoshuo-message<?php echo $can_publish ? '' : ' is-error'; ?>" role="status"><?php echo $can_publish ? '' : '需要作者权限才能发布'; ?></span>
+            <button type="submit" class="btn btn-primary btn-sm markdown-shuoshuo-submit"<?php disabled(!$can_publish); ?> title="<?php echo esc_attr($can_publish ? '发布说说' : '当前账号没有作者权限'); ?>">
+                <i class="fa fa-paper-plane"></i> 发布
+            </button>
+        </div>
+    </form>
+    <?php if ($compact): ?>
+    <a class="markdown-shuoshuo-page-link" href="<?php echo esc_url(home_url('/publish-shuoshuo/')); ?>">
+        <span><i class="fa fa-pencil-square-o" aria-hidden="true"></i> 前往完整发布页面</span>
+        <i class="fa fa-angle-right" aria-hidden="true"></i>
+    </a>
+    <?php endif; ?>
+    <?php
+}
+
+function boxmoe_footnotes_assets() {
+    if (is_single()) {
+        wp_enqueue_script('boxmoe-footnotes', boxmoe_theme_url() . '/assets/js/footnotes.js', [], THEME_VERSION, true);
+    }
+}
+add_action('wp_enqueue_scripts', 'boxmoe_footnotes_assets');
+
+
+// ==================== 说说标题自动设置 ====================
+
+/**
+ * 发表/更新说说时，自动将标题设为 shuoshuo{ID}
+ */
+function boxmoe_shuoshuo_auto_title($post_id, $post, $update) {
+    // 跳过自动保存和修订
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (wp_is_post_revision($post_id)) return;
+    if ($post->post_type !== 'post') return;
+
+    // 检查是否在说说分类中
+    $shuoshuo_cat = get_category_by_slug('shuoshuo');
+    if (!$shuoshuo_cat) return;
+    if (!has_category($shuoshuo_cat->term_id, $post_id)) return;
+
+    // 标题已是 shuoshuo{id} 格式则跳过
+    $expected = 'shuoshuo' . $post_id;
+    if ($post->post_title === $expected) return;
+
+    // 设为新标题
+    remove_action('save_post', 'boxmoe_shuoshuo_auto_title', 20);
+    wp_update_post(array(
+        'ID'         => $post_id,
+        'post_title' => $expected,
+        'post_name'  => $expected,
+    ));
+    add_action('save_post', 'boxmoe_shuoshuo_auto_title', 20, 3);
+}
+add_action('save_post', 'boxmoe_shuoshuo_auto_title', 20, 3);
+
+// ==================== 后台禁用说说分类选择 ====================
+
+/**
+ * 在文章编辑页禁用说说分类复选框（禁止将普通文章归为说说）
+ * 说说本身也是 post，发布后再选分类会触发自动改标题
+ */
+function boxmoe_admin_disable_shuoshuo_cat() {
+    $screen = get_current_screen();
+    if (!$screen || $screen->base !== 'post') return;
+    ?>
+<style>
+    /* 只会影响编辑页的分类勾选，不影响快速编辑等其他地方 */
+    #categorydiv #shuoshuo-cat { pointer-events:none;opacity:0.5; }
+    #categorydiv #shuoshuo-cat input { pointer-events:none; }
+</style>
+<script>
+jQuery(function($) {
+    // 找到说说分类的复选框并禁用
+    var shuoshuoLabel = $('#categorydiv label').filter(function() {
+        return $(this).text().trim() === '说说' || $(this).text().trim().startsWith('说说');
+    });
+    if (shuoshuoLabel.length) {
+        shuoshuoLabel.css({opacity:0.5,pointerEvents:'none'});
+        shuoshuoLabel.find('input').prop('disabled', true);
+    }
+});
+</script>
+    <?php
+}
+add_action('admin_head', 'boxmoe_admin_disable_shuoshuo_cat');

@@ -98,9 +98,22 @@ function boxmoe_get_avatar($avatar, $id_or_email, $size = 96, $default = '', $al
     $class = array_map('sanitize_html_class', $class);
     $class = esc_attr(implode(' ', array_unique($class)));
 
+    // 封禁用户返回默认头像
+    if (isset($user_id) && function_exists('boxmoe_is_user_banned') && boxmoe_is_user_banned($user_id) && !current_user_can('manage_options')) {
+        $gavatarurl = get_avatar_url(0);
+        return '<img src="' . $gavatarurl . '" class="' . $class . '" alt="avatar" />';
+    }
+
     if (isset($user_id)) {
         $user_avatar_url = get_user_meta($user_id, 'user_avatar', true);
-        if ($user_avatar_url) { 
+        // SSO 统一头像：用户没自己传过就用统一认证那边的
+        if (!$user_avatar_url) {
+            $sso_picture = get_user_meta($user_id, 'sso_picture', true);
+            if ($sso_picture) {
+                $user_avatar_url = $sso_picture;
+            }
+        }
+        if ($user_avatar_url) {
             return '<img src="' . $user_avatar_url . '" class="' . $class . '" alt="avatar" />';
         } elseif (stripos($email, "@qq.com"))  {
             $qq = str_ireplace("@qq.com", "", $email);
@@ -131,6 +144,12 @@ add_filter('get_avatar', 'boxmoe_get_avatar', 10, 6);
 function boxmoe_get_avatar_url($id_or_email, $size = 100) {
     $email = '';
     $user_id = '';
+    // 封禁用户返回默认头像（管理员除外）
+    if (is_numeric($id_or_email) && $id_or_email > 0) {
+        if (function_exists('boxmoe_is_user_banned') && boxmoe_is_user_banned((int)$id_or_email) && !current_user_can('manage_options')) {
+            return get_avatar_url(0, ['size' => $size]);
+        }
+    }
         if (is_numeric($id_or_email)) {
         $user = get_userdata($id_or_email);
         if ($user) {
@@ -148,6 +167,11 @@ function boxmoe_get_avatar_url($id_or_email, $size = 100) {
         $user_avatar_url = get_user_meta($user_id, 'user_avatar', true);
         if ($user_avatar_url) {
             return $user_avatar_url;
+        }
+        // SSO 统一头像：用户没自己传过就用统一认证那边的
+        $sso_picture = get_user_meta($user_id, 'sso_picture', true);
+        if ($sso_picture) {
+            return $sso_picture;
         }
     }
     if (stripos($email, "@qq.com")) {

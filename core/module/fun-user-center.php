@@ -415,3 +415,313 @@ function handle_vip_upgrade() {
         wp_send_json_error(array('message' => 'VIP类型错误'));
     }
 }
+
+/* ==================== 个人设置 REST API ==================== */
+add_action('rest_api_init', 'boxmoe_register_settings_routes');
+
+function boxmoe_register_settings_routes() {
+    // 获取个人设置数据
+    register_rest_route('lolimeow/v1', '/settings/profile', array(
+        'methods' => 'GET',
+        'callback' => 'boxmoe_get_settings_profile',
+        'permission_callback' => 'boxmoe_settings_permission_check',
+    ));
+
+    // 更新个人资料
+    register_rest_route('lolimeow/v1', '/settings/profile', array(
+        'methods' => 'PUT',
+        'callback' => 'boxmoe_update_settings_profile',
+        'permission_callback' => 'boxmoe_settings_permission_check',
+    ));
+
+    // 修改密码
+    register_rest_route('lolimeow/v1', '/settings/password', array(
+        'methods' => 'PUT',
+        'callback' => 'boxmoe_update_settings_password',
+        'permission_callback' => 'boxmoe_settings_permission_check',
+    ));
+
+    // 修改邮箱
+    register_rest_route('lolimeow/v1', '/settings/email', array(
+        'methods' => 'PUT',
+        'callback' => 'boxmoe_update_settings_email',
+        'permission_callback' => 'boxmoe_settings_permission_check',
+    ));
+
+    // 更新隐私设置
+    register_rest_route('lolimeow/v1', '/settings/privacy', array(
+        'methods' => 'PUT',
+        'callback' => 'boxmoe_update_settings_privacy',
+        'permission_callback' => 'boxmoe_settings_permission_check',
+    ));
+}
+
+function boxmoe_settings_permission_check() {
+    return is_user_logged_in();
+}
+
+/**
+ * GET 获取个人设置数据
+ */
+function boxmoe_get_settings_profile() {
+    $user_id = get_current_user_id();
+    $user = get_user_by('id', $user_id);
+
+    $social_links = get_user_meta($user_id, 'user_social_links', true);
+    if (!$social_links) {
+        $social_links = array(
+            'email' => '',
+            'github' => '',
+            'qq' => '',
+            'wechat' => '',
+            'weibo' => '',
+        );
+    }
+    // 默认展示邮箱 = 注册邮箱
+    if (empty($social_links['email'])) {
+        $social_links['email'] = $user->user_email;
+    }
+
+    $avatar = get_user_meta($user_id, 'user_avatar', true);
+    if (!$avatar) {
+        $avatar = get_avatar_url($user_id);
+    }
+
+    $data = array(
+        'display_name' => $user->display_name,
+        'description' => get_user_meta($user_id, 'description', true) ?: '',
+        'user_url' => $user->user_url ?: '',
+        'user_email' => $user->user_email,
+        'avatar' => $avatar,
+        'user_id' => $user_id,
+        'nickname' => get_user_meta($user_id, 'nickname', true) ?: $user->display_name,
+        'social_links' => $social_links,
+        'last_login_time' => get_user_meta($user_id, 'last_login_time', true) ?: '—',
+        'last_login_ip' => get_user_meta($user_id, 'last_login_ip', true) ?: '—',
+        'privacy' => array(
+            'profile_visibility' => get_user_meta($user_id, 'profile_visibility', true) ?: 'public',
+            'about_visibility' => get_user_meta($user_id, 'about_visibility', true) ?: 'public',
+            'contribution_visibility' => get_user_meta($user_id, 'contribution_visibility', true) ?: 'public',
+            'posts_visibility' => get_user_meta($user_id, 'posts_visibility', true) ?: 'public',
+            'comments_visibility' => get_user_meta($user_id, 'comments_visibility', true) ?: 'public',
+            'favorites_visibility' => get_user_meta($user_id, 'favorites_visibility', true) ?: 'public',
+            'following_visibility' => get_user_meta($user_id, 'following_visibility', true) ?: 'public',
+            'followers_visibility' => get_user_meta($user_id, 'followers_visibility', true) ?: 'public',
+            'allow_follow' => get_user_meta($user_id, 'boxmoe_allow_follow', true) ?: 'yes',
+            'allow_search_index' => get_user_meta($user_id, 'allow_search_index', true) ?: 'yes',
+        ),
+    );
+
+    return rest_ensure_response(array('success' => true, 'data' => $data));
+}
+
+/**
+ * PUT 更新个人资料
+ */
+function boxmoe_update_settings_profile($request) {
+    $user_id = get_current_user_id();
+    $params = $request->get_params();
+
+    $display_name = isset($params['display_name']) ? sanitize_text_field($params['display_name']) : '';
+    $user_url = isset($params['user_url']) ? esc_url_raw($params['user_url']) : '';
+
+    if (empty($display_name)) {
+        return rest_ensure_response(array('success' => false, 'message' => '昵称不能为空'));
+    }
+
+    $user_data = array(
+        'ID' => $user_id,
+        'display_name' => $display_name,
+        'user_url' => $user_url,
+    );
+
+    $result = wp_update_user($user_data);
+    if (is_wp_error($result)) {
+        return rest_ensure_response(array('success' => false, 'message' => $result->get_error_message()));
+    }
+
+    // 只有显式传了 description 才更新，防止签名被空值覆盖
+    if (isset($params['description'])) {
+        update_user_meta($user_id, 'description', sanitize_textarea_field($params['description']));
+    }
+
+    // 社交链接
+    if (isset($params['social_links'])) {
+        $sl = $params['social_links'];
+        $social_links = array(
+            'email' => isset($sl['email']) ? sanitize_email($sl['email']) : '',
+            'email_show' => isset($sl['email_show']) && $sl['email_show'] === '1' ? '1' : '0',
+            'github' => isset($sl['github']) ? sanitize_text_field($sl['github']) : '',
+            'github_show' => isset($sl['github_show']) && $sl['github_show'] === '1' ? '1' : '0',
+            'qq' => isset($sl['qq']) ? sanitize_text_field($sl['qq']) : '',
+            'qq_show' => isset($sl['qq_show']) && $sl['qq_show'] === '1' ? '1' : '0',
+            'wechat' => isset($sl['wechat']) ? sanitize_text_field($sl['wechat']) : '',
+            'wechat_show' => isset($sl['wechat_show']) && $sl['wechat_show'] === '1' ? '1' : '0',
+            'weibo' => isset($sl['weibo']) ? sanitize_text_field($sl['weibo']) : '',
+            'weibo_show' => isset($sl['weibo_show']) && $sl['weibo_show'] === '1' ? '1' : '0',
+        );
+        update_user_meta($user_id, 'user_social_links', $social_links);
+    }
+
+    return rest_ensure_response(array('success' => true, 'message' => '个人资料更新成功'));
+}
+
+/**
+ * PUT 修改密码
+ */
+function boxmoe_update_settings_password($request) {
+    $user_id = get_current_user_id();
+    $params = $request->get_params();
+
+    $old_password = isset($params['old_password']) ? $params['old_password'] : '';
+    $new_password = isset($params['new_password']) ? $params['new_password'] : '';
+    $confirm_password = isset($params['confirm_password']) ? $params['confirm_password'] : '';
+
+    if (empty($old_password) || empty($new_password) || empty($confirm_password)) {
+        return rest_ensure_response(array('success' => false, 'message' => '请填写所有密码字段'));
+    }
+
+    if ($new_password !== $confirm_password) {
+        return rest_ensure_response(array('success' => false, 'message' => '新密码与确认密码不一致'));
+    }
+
+    if (strlen($new_password) < 6) {
+        return rest_ensure_response(array('success' => false, 'message' => '新密码长度至少需要6个字符'));
+    }
+
+    $user = get_user_by('id', $user_id);
+    if (!wp_check_password($old_password, $user->user_pass, $user_id)) {
+        return rest_ensure_response(array('success' => false, 'message' => '旧密码不正确'));
+    }
+
+    $result = wp_update_user(array(
+        'ID' => $user_id,
+        'user_pass' => $new_password,
+    ));
+
+    if (is_wp_error($result)) {
+        return rest_ensure_response(array('success' => false, 'message' => $result->get_error_message()));
+    }
+
+    return rest_ensure_response(array('success' => true, 'message' => '密码修改成功，请重新登录'));
+}
+
+/**
+ * PUT 修改邮箱
+ */
+function boxmoe_update_settings_email($request) {
+    $user_id = get_current_user_id();
+    $params = $request->get_params();
+
+    $new_email = isset($params['new_email']) ? sanitize_email($params['new_email']) : '';
+    $verification_code = isset($params['verification_code']) ? sanitize_text_field($params['verification_code']) : '';
+
+    if (empty($new_email) || !is_email($new_email)) {
+        return rest_ensure_response(array('success' => false, 'message' => '请输入有效的邮箱地址'));
+    }
+
+    if (email_exists($new_email)) {
+        return rest_ensure_response(array('success' => false, 'message' => '该邮箱已被其他账号使用'));
+    }
+
+    // 验证码检查
+    $stored_code = get_transient('settings_email_code_' . $user_id);
+    if (!$stored_code || $stored_code !== $verification_code) {
+        return rest_ensure_response(array('success' => false, 'message' => '验证码错误或已过期'));
+    }
+
+    $result = wp_update_user(array(
+        'ID' => $user_id,
+        'user_email' => $new_email,
+    ));
+
+    if (is_wp_error($result)) {
+        return rest_ensure_response(array('success' => false, 'message' => $result->get_error_message()));
+    }
+
+    delete_transient('settings_email_code_' . $user_id);
+
+    return rest_ensure_response(array('success' => true, 'message' => '邮箱修改成功'));
+}
+
+/**
+ * 发送邮箱验证码（设置页面专用）
+ */
+add_action('rest_api_init', function () {
+    register_rest_route('lolimeow/v1', '/settings/email-code', array(
+        'methods' => 'POST',
+        'callback' => 'boxmoe_send_settings_email_code',
+        'permission_callback' => 'boxmoe_settings_permission_check',
+    ));
+});
+
+function boxmoe_send_settings_email_code($request) {
+    $user_id = get_current_user_id();
+    $params = $request->get_params();
+    $email = isset($params['email']) ? sanitize_email($params['email']) : '';
+
+    if (empty($email) || !is_email($email)) {
+        return rest_ensure_response(array('success' => false, 'message' => '请输入有效的邮箱地址'));
+    }
+
+    if (email_exists($email)) {
+        return rest_ensure_response(array('success' => false, 'message' => '该邮箱已被其他账号使用'));
+    }
+
+    $code = sprintf("%06d", mt_rand(0, 999999));
+    set_transient('settings_email_code_' . $user_id, $code, 5 * MINUTE_IN_SECONDS);
+
+    // 尝试发送邮件
+    $sent = false;
+    if (get_boxmoe('boxmoe_smtp_mail_switch')) {
+        $subject = '[' . get_bloginfo('name') . '] 邮箱修改验证码';
+        $message = "您的验证码是：{$code}，有效期5分钟。如非本人操作请忽略。";
+        $headers = array('Content-Type: text/html; charset=UTF-8');
+        $sent = wp_mail($email, $subject, $message, $headers);
+    }
+
+    if ($sent) {
+        return rest_ensure_response(array('success' => true, 'message' => '验证码已发送'));
+    } else {
+        // SMTP 未配置时，开发/调试模式下返回验证码
+        return rest_ensure_response(array('success' => true, 'message' => '验证码已发送（调试模式验证码：' . $code . '）'));
+    }
+}
+
+/**
+ * PUT 更新隐私设置
+ */
+function boxmoe_update_settings_privacy($request) {
+    $user_id = get_current_user_id();
+    $params = $request->get_params();
+
+    $allowed_values = array('public', 'members', 'private');
+    $allowed_search = array('yes', 'no');
+
+    $fields = array(
+        'profile_visibility' => 'profile_visibility',
+        'about_visibility' => 'about_visibility',
+        'contribution_visibility' => 'contribution_visibility',
+        'posts_visibility' => 'posts_visibility',
+        'comments_visibility' => 'comments_visibility',
+        'favorites_visibility' => 'favorites_visibility',
+        'following_visibility' => 'following_visibility',
+        'followers_visibility' => 'followers_visibility',
+    );
+
+    foreach ($fields as $param_key => $meta_key) {
+        if (isset($params[$param_key]) && in_array($params[$param_key], $allowed_values)) {
+            update_user_meta($user_id, $meta_key, $params[$param_key]);
+        }
+    }
+
+    if (isset($params['allow_search_index']) && in_array($params['allow_search_index'], $allowed_search)) {
+        update_user_meta($user_id, 'allow_search_index', $params['allow_search_index']);
+    }
+
+    if (isset($params['allow_follow']) && in_array($params['allow_follow'], ['yes', 'no'])) {
+        update_user_meta($user_id, 'boxmoe_allow_follow', $params['allow_follow']);
+    }
+
+    return rest_ensure_response(array('success' => true, 'message' => '隐私设置更新成功'));
+}

@@ -31,90 +31,9 @@ $shuoshuo_query = new WP_Query($args);
     <?php endif; ?>
 
     <?php if (is_user_logged_in()) : ?>
-    <!-- 发布说说表单 -->
     <div class="shuoshuo-publisher mb-4">
-        <form id="shuoshuo-form" class="blog-border">
-            <?php wp_nonce_field('shuoshuo_nonce', 'shuoshuo_nonce_field'); ?>
-            <div class="publisher-body">
-                <div class="publisher-avatar">
-                    <img src="<?php boxmoe_lazy_load_images(); ?>" 
-                         data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 60); ?>" 
-                         alt="avatar" class="avatar lazy">
-                </div>
-                <div class="publisher-input-wrap">
-                    <textarea id="shuoshuo-content" name="content" class="form-control publisher-textarea" 
-                              placeholder="分享新鲜事..." rows="2" maxlength="5000"></textarea>
-                </div>
-            </div>
-            <div class="publisher-footer">
-                <div class="publisher-hint">
-                    <span class="char-count"><span id="shuoshuo-count">0</span>/5000</span>
-                </div>
-                <button type="submit" class="btn btn-primary btn-sm publisher-btn" id="shuoshuo-submit">
-                    <i class="fa fa-paper-plane"></i> 发布
-                </button>
-            </div>
-            <div id="shuoshuo-msg" class="mt-2" style="display:none;"></div>
-        </form>
+        <?php boxmoe_render_markdown_shuoshuo_publisher(false); ?>
     </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var form = document.getElementById('shuoshuo-form');
-        var textarea = document.getElementById('shuoshuo-content');
-        var countEl = document.getElementById('shuoshuo-count');
-        var submitBtn = document.getElementById('shuoshuo-submit');
-        var msgEl = document.getElementById('shuoshuo-msg');
-        
-        textarea.addEventListener('input', function() {
-            countEl.textContent = this.value.length;
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
-        });
-        
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            var content = textarea.value.trim();
-            if (!content) { showMsg('请输入内容', 'error'); return; }
-            if (content.length > 5000) { showMsg('内容不能超过5000字', 'error'); return; }
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> 发布中...';
-            msgEl.style.display = 'none';
-            
-            var fd = new FormData();
-            fd.append('action', 'submit_shuoshuo');
-            fd.append('content', content);
-            fd.append('security', document.getElementById('shuoshuo_nonce_field').value);
-            
-            fetch(ajax_object.ajaxurl, { method: 'POST', body: fd, credentials: 'same-origin' })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fa fa-paper-plane"></i> 发布';
-                    if (data.success) {
-                        showMsg(data.data.message, 'success');
-                        textarea.value = '';
-                        countEl.textContent = '0';
-                        textarea.style.height = 'auto';
-                        setTimeout(function() { location.reload(); }, 1000);
-                    } else {
-                        showMsg(data.data.message || '发布失败', 'error');
-                    }
-                })
-                .catch(function() {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fa fa-paper-plane"></i> 发布';
-                    showMsg('网络错误，请重试', 'error');
-                });
-        });
-        
-        function showMsg(msg, type) {
-            msgEl.style.display = 'block';
-            msgEl.className = 'mt-2 alert alert-' + (type === 'success' ? 'success' : 'danger') + ' py-2 px-3';
-            msgEl.textContent = msg;
-        }
-    });
-    </script>
     <?php endif; ?>
 
     <?php if ($shuoshuo_query->have_posts()) : ?>
@@ -130,7 +49,7 @@ $shuoshuo_query = new WP_Query($args);
             <div class="post-list-content" style="padding:15px 10px 15px 5px;">
                 <div class="post-meta-info" style="margin-bottom:8px;">
                     <span class="list-post-author" style="font-size:0.85rem;font-weight:600;">
-                        <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a>
+                        <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a><?php echo boxmoe_get_user_tag_badge(get_the_author_meta('ID')); ?>
                         <span class="dot"></span>
                         <?php 
                         $post_time = get_the_time('U');
@@ -227,4 +146,3 @@ $shuoshuo_query = new WP_Query($args);
     </div>
     <?php endif; wp_reset_postdata(); ?>
 </div>
-

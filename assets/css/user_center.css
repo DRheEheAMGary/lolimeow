@@ -29,3 +29,75 @@
 .row .col-lg-4:nth-child(9) .btn-upgrade:hover {background-color:#8b4513;color:#fff;}
 .row .col-lg-4:nth-child(10) .btn-upgrade {color:#9932cc;border-color:#9932cc;}
 .row .col-lg-4:nth-child(10) .btn-upgrade:hover {background-color:#9932cc;color:#fff;}
+
+/* ==================== 个人设置页面 ==================== */
+.settings-container {display:flex;gap:30px;min-height:500px;}
+.settings-sidebar {flex:0 0 180px;}
+.settings-content {flex:1;min-width:0;}
+
+/* 侧边 Tab */
+.settings-tabs {display:flex;flex-direction:column;gap:4px;position:sticky;top:20px;}
+.settings-tab {display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;border:none;border-radius:10px;background:transparent;color:var(--bs-secondary-color, #666);font-size:14px;cursor:pointer;transition:all 0.2s;text-align:left;}
+.settings-tab i {width:18px;text-align:center;font-size:16px;transition:color 0.2s;}
+.settings-tab:hover {background:var(--bs-light, #f5f5f5);color:var(--bs-body-color, #333);}
+.settings-tab.active {background:var(--bs-primary, #6366f1);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,0.3);}
+.settings-tab.active i {color:#fff;}
+
+/* 面板 */
+.settings-panel {animation:panelFadeIn 0.3s ease;}
+@keyframes panelFadeIn {from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.panel-title {font-size:1.1rem;font-weight:700;margin-bottom:4px;}
+.panel-desc {color:var(--bs-secondary-color, #888);font-size:0.875rem;margin-bottom:24px;}
+
+/* 头像上传 */
+.avatar-upload-wrap {display:flex;align-items:center;}
+.avatar-upload-zone {position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;cursor:pointer;flex-shrink:0;}
+.avatar-preview {width:100%;height:100%;object-fit:cover;}
+.avatar-overlay {position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);color:#fff;font-size:12px;opacity:0;transition:opacity 0.2s;}
+.avatar-upload-zone:hover .avatar-overlay {opacity:1;}
+.avatar-overlay i {font-size:20px;margin-bottom:2px;}
+
+/* 社交链接 */
+.social-link-row {display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:nowrap;}
+.social-icon {width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:transparent;color:var(--bs-secondary-color, #666);font-size:20px;flex-shrink:0;transition:all 0.2s;}
+.social-link-row .form-control {flex:1;min-width:0;}
+.social-link-row .form-control:not(:placeholder-shown) {border-color:var(--bs-primary);color:var(--bs-body-color);font-weight:500;}
+.social-link-row .social-show-checkbox {flex:0 0 auto;margin-left:8px;}
+
+/* 安全区域 */
+.security-section {margin-bottom:8px;}
+.section-subtitle {font-size:0.95rem;font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px dashed var(--bs-border-color, #e0e0e0);}
+
+/* 登录记录 */
+.login-history {display:flex;flex-direction:column;gap:12px;}
+.login-record-item {display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bs-light, #f8f9fa);border-radius:8px;}
+.record-label {font-size:0.875rem;color:var(--bs-secondary-color, #888);}
+.record-label i {margin-right:6px;}
+.record-value {font-weight:600;font-size:0.875rem;}
+
+/* 隐私设置卡片 */
+.privacy-list {display:flex;flex-direction:column;gap:12px;}
+.privacy-option-card {display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:var(--bs-light, #f8f9fa);border-radius:10px;transition:box-shadow 0.2s;border:1px solid transparent;}
+.privacy-option-card:hover {box-shadow:0 2px 8px rgba(0,0,0,0.06);border-color:var(--bs-border-color, #e0e0e0);}
+.privacy-info {display:flex;align-items:center;gap:14px;}
+.privacy-icon {width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--bs-white, #fff);color:var(--bs-primary, #6366f1);font-size:18px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
+.privacy-select {width:160px!important;flex-shrink:0;}
+
+/* 表单通用 */
+.settings-form .form-label {font-size:0.875rem;font-weight:500;margin-bottom:4px;}
+.settings-form .form-control,.settings-form .form-select {border-radius:8px;transition:border-color 0.2s,box-shadow 0.2s;}
+.settings-form .form-control:focus,.settings-form .form-select:focus {box-shadow:0 0 0 3px rgba(99,102,241,0.15);}
+.form-actions {padding-top:8px;}
+
+/* 响应式 - 移动端 */
+@media (max-width:768px) {
+    .settings-container {flex-direction:column;gap:0;}
+    .settings-sidebar {flex:0 0 auto;margin-bottom:16px;}
+    .settings-tabs {flex-direction:row;gap:4px;position:static;overflow-x:auto;padding-bottom:4px;}
+    .settings-tab {padding:8px 14px;font-size:13px;white-space:nowrap;border-radius:20px;}
+    .settings-tab i {display:none;}
+    .privacy-option-card {flex-direction:column;align-items:flex-start;gap:12px;}
+    .privacy-select {width:100%!important;}
+    .avatar-upload-wrap {flex-wrap:wrap;gap:8px;}
+    .login-record-item {flex-direction:column;align-items:flex-start;gap:4px;}
+}

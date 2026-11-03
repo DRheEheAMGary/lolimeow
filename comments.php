@@ -161,7 +161,7 @@ if(!isset($user_ID)) {
                                         ?>
                                     </button>
                                     <?php else:?>
-                                    <a href="<?php echo wp_login_url(); ?>" target="_blank" type="button" class="switch-account-btn">
+                                    <a href="<?php echo esc_url(home_url('/sign-in/')); ?>" target="_blank" type="button" class="switch-account-btn">
                                         <i class="fa fa-sign-in"></i>
                                         用户登录
                                     </a>

@@ -20,6 +20,7 @@ $widgets = array(
 	'tags',
 	'userinfo',
 	'search',
+	'markdown_shuoshuo',
 
 );
 

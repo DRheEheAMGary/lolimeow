@@ -22,6 +22,21 @@ function boxmoe_random_string($length = 6) {
 }
 
 
+// 面包屑短代码--------------------------boxmoe.com--------------------------
+function boxmoe_breadcrumb_pre_scan() {
+    if (!is_singular()) return;
+    global $post;
+    if (!$post) return;
+    if (preg_match('/\[breadcrumb\s+title="([^"]*)"\]/', $post->post_content, $m)) {
+        $GLOBALS['boxmoe_breadcrumb'] = $m[1];
+    }
+}
+add_action('wp', 'boxmoe_breadcrumb_pre_scan');
+add_shortcode('breadcrumb', function($atts) { return ''; });
+add_filter('the_content', function($content) {
+    return preg_replace('#<p>\s*</p>#', '', $content);
+}, 99);
+
 // 主题静态资源url--------------------------boxmoe.com--------------------------
 function boxmoe_theme_url(){
     if(get_boxmoe('boxmoe_cdn_assets_switch')){
@@ -210,7 +225,7 @@ function boxmoe_load_assets_footer(){?>
           </div>
           <div class="col-lg-12 text-center mt-3 copyright">
           <span>Copyright © <?php echo date('Y'); ?> <a href="<?php echo home_url(); ?>"><?php echo get_bloginfo('name'); ?></a> <?php echo get_boxmoe('boxmoe_footer_info','Powered by WordPress'); ?> </span>
-          <span>Theme by <a href="https://www.boxmoe.com" target="_blank">Boxmoe</a></span>
+          <span>Theme by <a href="https://www.boxmoe.com" target="_blank">Boxmoe</a>,Modified by DRheEheAM_Gary & DeepSeek V4</span>
           <?php if(get_boxmoe('boxmoe_footer_running_days_switch')): ?> 
           <?php echo get_boxmoe('boxmoe_footer_running_days_prefix','本站已稳定运行了'); ?><span id="running-days" style="display:inline-block;">0</span><?php echo get_boxmoe('boxmoe_footer_running_days_suffix','天'); ?>
           <?php endif; ?>

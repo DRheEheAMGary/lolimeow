@@ -52,4 +52,15 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
 .toast.fade.show {
     transform: translateX(0);
 }
+@keyframes fadeInUp{0%{opacity:0;transform:translateY(40px)}100%{opacity:1;transform:translateY(0)}}
+.post-list,.shuoshuo-post{opacity:0;transform:translateY(40px)}
+.post-list.revealed,.shuoshuo-post.revealed{animation:fadeInUp .6s ease-out forwards}
 </style>
+<script>
+(function(){
+    var els=document.querySelectorAll('.post-list,.shuoshuo-post');
+    if(!els.length||!('IntersectionObserver' in window)) return;
+    var o=new IntersectionObserver(function(e){e.forEach(function(e){e.isIntersecting&&(e.target.classList.add('revealed'),o.unobserve(e.target))})},{threshold:.1});
+    els.forEach(function(e){o.observe(e)});
+})();
+</script>

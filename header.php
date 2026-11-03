@@ -224,10 +224,14 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
                         <a class="dropdown-item" href="<?php echo boxmoe_get_user_profile_url(get_current_user_id()); ?>">
                           <i class="fa fa-user-circle"></i>个人主页</a>
                       </li>
-                      <?php if(current_user_can('administrator')): ?>
+                      <li>
+                        <a class="dropdown-item" href="/usersettings">
+                          <i class="fa fa-cog"></i>个人设置</a>
+                      </li>
+                      <?php if(current_user_can('edit_posts')): ?>
                       <li>
                         <a class="dropdown-item" target="_blank" href="<?php echo admin_url(); ?>">
-                          <i class="fa fa-cog"></i>后台管理</a>
+                          <i class="fa fa-dashboard"></i>后台管理</a>
                       </li>
                       <?php endif; ?>
                       <li>
@@ -245,7 +249,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
         </div>
       </nav>
     </header>
-    <?php if (!get_query_var('boxmoe_user_profile')): ?>
+    <?php if (!get_query_var('boxmoe_user_profile') && !get_query_var('boxmoe_user_settings')): ?>
     <section class="boxmoe_header_banner">
       <div class="boxmoe_header_banner_img">
         <img src="<?php  boxmoe_banner_image(); ?>" alt="boxmoe_header_banner_img">
@@ -304,6 +308,10 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
                   echo $template_names[$template];
               } elseif(get_query_var('boxmoe_user_profile')) {
                   echo 'USER PROFILE';
+              } elseif(is_page() && ($custom_breadcrumb = get_post_meta(get_the_ID(), 'boxmoe_breadcrumb', true))) {
+                  echo esc_html($custom_breadcrumb);
+              } elseif(isset($GLOBALS['boxmoe_breadcrumb'])) {
+                  echo $GLOBALS['boxmoe_breadcrumb'];
               } else {
                   echo 'PAGE';
               }

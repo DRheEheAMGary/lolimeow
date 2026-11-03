@@ -41,7 +41,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                             <div class="single-author-name">
                               <div class="single-author-info">
                                 <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" class="name">
-                                  <i class="fa fa-at"></i><?php the_author(); ?></a>
+                                  <i class="fa fa-at"></i><?php the_author(); ?></a><?php echo boxmoe_get_user_tag_badge(get_the_author_meta('ID')); ?>
                                 <span class="data">
                                   <i class="fa fa-clock-o"></i><?php the_date(); ?></span>
                                 <span class="view">

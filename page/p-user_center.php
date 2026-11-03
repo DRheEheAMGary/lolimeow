@@ -148,7 +148,23 @@ echo '<link rel="stylesheet" href="'.boxmoe_theme_url().'/assets/css/user_center
 $items = isset($_GET["items"]) ? $_GET["items"] : 'home';
 $current_user = wp_get_current_user();
 ?>
-   <?php if(function_exists( 'mobantu_erphp_menu' )  ) {?>
+	   <?php if($items == 'settings'){?>
+	    <!-- 个人设置页面 - 不依赖 erphpdown 插件 -->
+	    <section class="py-lg-7 py-5 user_center">
+	         <div class="container">
+	            <div class="row">
+	                <?php require_once(get_template_directory() . '/page/template/user-nav.php'); ?>
+	                <div class="col-lg-9 col-md-8">
+	                  <div class="card border-0 mb-4 shadow-sm">
+	                     <div class="card-body p-lg-5">
+	                        <?php require_once(get_template_directory() . '/page/template/user-settings.php'); ?>
+	                     </div>
+	                  </div>
+	               </div>
+	            </div>
+	         </div>
+	      </section>
+	   <?php }elseif(function_exists( 'mobantu_erphp_menu' )  ) {?>
     <section class="py-lg-7 py-5 user_center">
          <div class="container">
             <div class="row">
@@ -160,6 +176,7 @@ $current_user = wp_get_current_user();
                             <h3><?php 
                             $menu_names = array(
                                 'home' => '个人中心',
+                                'settings' => '个人设置',
                                 'order' => '订单管理',
                                 'vip' => '会员订阅',
                                 'money' => '资产管理',

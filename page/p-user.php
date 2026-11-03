@@ -17,7 +17,7 @@ if (!empty($username)) {
 }
 
 // 没找到用户 → 重定向到 /user/none
-if (!$profile_user && $username !== 'none') {
+if (!$profile_user && $username !== 'none' && $username !== 'banned') {
     wp_redirect(home_url('/user/none'));
     exit;
 }
@@ -39,7 +39,7 @@ if (!$profile_user) {
             </p>
             <div class="mt-4" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
                 <?php if (!is_user_logged_in()): ?>
-                <a href="<?php echo wp_login_url(); ?>" class="btn btn-primary">
+                <a href="<?php echo esc_url(home_url('/sign-in/')); ?>" class="btn btn-primary">
                     <i class="fa fa-sign-in"></i> 登录
                 </a>
                 <a href="<?php echo wp_registration_url(); ?>" class="btn btn-outline-primary">
@@ -58,28 +58,22 @@ if (!$profile_user) {
     return;
 }
 
-// 隐私检查
-if (!boxmoe_is_profile_public($profile_user->ID)) {
-    get_header(); ?>
-    <div class="<?php echo boxmoe_layout_setting(); ?> blog-post">
-        <div class="post-single text-center py-7">
-            <div class="mb-4">
-                <i class="fa fa-lock" style="font-size:5rem;color:var(--bs-secondary-color);"></i>
-            </div>
-            <h3>主页未公开</h3>
-            <p class="text-muted mt-3" style="max-width:400px;margin:0 auto;">
-                该用户设置了仅登录后可见。
-            </p>
-            <a href="<?php echo wp_login_url(boxmoe_get_user_profile_url($profile_user->ID)); ?>" class="btn btn-primary mt-4">
-                <i class="fa fa-sign-in"></i> 去登录
-            </a>
-        </div>
-    </div>
-    <?php get_sidebar(); ?>
-    <?php
-    get_footer();
-    return;
-}
+	// 隐私检查：管理员和本人不受限制
+	if (!boxmoe_can_view_content($profile_user->ID, 'profile_visibility')) {
+	    get_header(); ?>
+	    <div class="<?php echo boxmoe_layout_setting(); ?> blog-post">
+	        <div class="post-single text-center py-7">
+	            <div class="mb-4">
+	                <i class="fa fa-lock" style="font-size:5rem;color:#ccc;"></i>
+	            </div>
+	            <h3>抱歉，根据隐私设置，该用户拒绝显示此页面</h3>
+	        </div>
+	    </div>
+	    <?php get_sidebar(); ?>
+	    <?php
+	    get_footer();
+	    return;
+	}
 
 // 全局化 $profile_user 供子模板使用
 global $profile_user;

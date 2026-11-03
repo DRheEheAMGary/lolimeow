@@ -29,7 +29,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                             <div class="single-author-name">
                               <div class="single-author-info">
                                 <a href="#" class="name">
-                                  <i class="fa fa-at"></i><?php the_author(); ?></a>
+                                  <i class="fa fa-at"></i><?php the_author(); ?></a><?php echo boxmoe_get_user_tag_badge(get_the_author_meta('ID')); ?>
                                 <span class="data">
                                   <i class="fa fa-clock-o"></i><?php the_date(); ?></span>
                                   <?php edit_post_link( '<i class="fa fa-pencil-square-o"></i>编辑['.__( '仅作者可见', 'boxmoe'). ']'); ?>

@@ -33,10 +33,32 @@ if (is_user_logged_in()){
                      <a href="<?php echo get_option('home'); ?>"><?php boxmoe_logo(); ?></a>
                      <h2 class="mb-1">欢迎回来</h2>
                      <p class="mb-0">
+                        <?php if (function_exists('sso_register_disabled') && sso_register_disabled()): ?>
+                        还没有账号？
+                        <a href="<?php echo esc_url(sso_login_link()); ?>" class="text-primary">用统一认证一键注册</a>
+                        <?php else: ?>
                         如果你还没有账号可以点击
                         <a href="<?php echo boxmoe_sign_up_link_page(); ?>" class="text-primary">注册</a>
+                        <?php endif; ?>
                      </p>
                   </div>
+                  <?php if (function_exists('sso_button_html')): ?>
+                  <div class="mb-3">
+                     <?php echo sso_button_html('btn btn-outline-primary w-100'); ?>
+                  </div>
+                  <?php if (!function_exists('sso_native_login_disabled') || !sso_native_login_disabled()): ?>
+                  <div class="text-center text-muted small mb-3">
+                     或使用站内账号登录
+                     <hr class="my-3">
+                  </div>
+                  <?php endif; ?>
+                  <?php endif; ?>
+                  <?php if (function_exists('sso_native_login_disabled') && sso_native_login_disabled()): ?>
+                  <style>#loginform{display:none !important}</style>
+                  <p class="text-center text-muted mb-4">
+                     从 WordPress 账号迁移？<a href="<?php echo esc_url(home_url('/migrate/')); ?>" class="sso-migrate-link">点击此处了解…</a>
+                  </p>
+                  <?php endif; ?>
                   <form class="needs-validation mb-6" action="" method="post" id="loginform" novalidate>
                      <div class="mb-3">
                         <label for="username" class="form-label">

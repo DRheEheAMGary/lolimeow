@@ -99,7 +99,7 @@ function handle_user_login() {
         'remember'      => $remember
     );
     
-    $user = wp_signon($creds, false);
+    $user = wp_signon($creds, true);
     
     if (is_wp_error($user)) {
         $error_code = $user->get_error_code();
@@ -119,7 +119,7 @@ function handle_user_login() {
                 $error_message = '请输入密码';
                 break;
             default:
-                $error_message = '登录失败，请检查用户名和密码';
+                $error_message = $user->get_error_message() ?: '登录失败，请检查用户名和密码';
         }
         
         wp_send_json_error(array(
@@ -262,7 +262,7 @@ function handle_user_signup() {
     delete_transient('verification_code_' . $formData['email']);  
     boxmoe_new_user_register_email($user_id);
     wp_set_current_user($user_id);
-    wp_set_auth_cookie($user_id, true);
+    wp_set_auth_cookie($user_id, true, true);
     wp_send_json_success(array(
         'message' => '注册成功并已自动登录'
     ));

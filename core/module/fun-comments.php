@@ -48,8 +48,8 @@ function boxmoe_comment($comment, $args = array(), $depth = 1) {
                     }
                     ?>
                 </span>
-                <?php if (user_can($comment->user_id, 'administrator')): ?>
-                    <span class="comment-badge"><?php echo get_boxmoe('boxmoe_comment_blogger_tag')?get_boxmoe('boxmoe_comment_blogger_tag'):'博主'; ?></span>
+                <?php if ($comment->user_id): ?>
+                    <?php echo boxmoe_get_user_tag_badge($comment->user_id); ?>
                 <?php endif; ?>
                 <span class="comment-date"><?php comment_date('Y年m月d日'); ?></span>
             </div>
@@ -85,7 +85,13 @@ function boxmoe_comment($comment, $args = array(), $depth = 1) {
                     'before' => '',
                     'after' => ''
                 )));
+                // 删除按钮：文章作者 / 评论作者 / 管理员可见
+                if ($current_user_id && ($current_user_id == $post_author_id || $current_user_id == $comment->user_id || current_user_can('manage_options'))):
                 ?>
+                <span class="comment-delete-btn" data-comment-id="<?php comment_ID(); ?>" title="删除评论">
+                    <i class="fa fa-trash-o"></i>删除
+                </span>
+                <?php endif; ?>
             </div>
         </div>
         <?php if ($depth < $args['max_depth']) : ?>
@@ -115,6 +121,17 @@ function save_private_comment_status($comment_id) {
     }
 }
 add_action('comment_post', 'save_private_comment_status');
+
+// 评论长度限制
+add_filter('preprocess_comment', 'boxmoe_comment_length_limit');
+function boxmoe_comment_length_limit($commentdata) {
+    $content = isset($commentdata['comment_content']) ? trim($commentdata['comment_content']) : '';
+    $len = mb_strlen($content, 'UTF-8');
+    if ($len > 50) {
+        wp_die('评论内容不能超过50个字符，当前' . $len . '字。请精简后重试。', '评论过长', ['back_link' => true]);
+    }
+    return $commentdata;
+}
 
 // session
 function save_comment_author_info($comment_ID, $comment_approved, $commentdata) {
@@ -190,6 +207,10 @@ function ajax_comment_callback() {
     }
 
     $comment_content = $comment_data['comment'];
+    // 50字限制
+    if (mb_strlen(trim($comment_content), 'UTF-8') > 50) {
+        wp_send_json_error('评论内容不能超过50个字符');
+    }
     if(get_boxmoe('boxmoe_comment_english_switch')){
     if (preg_match('/^[\x20-\x7E\s]+$/', $comment_content)) {
         wp_send_json_error('评论内容不能为纯英文');

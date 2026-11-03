@@ -188,13 +188,26 @@ function initCommentToolbar() {
                         emojiContent.appendChild(span);
                     });
                 } else if (data && data.emojis && typeof data.emojis === 'object') {
-                    // 插件表情包（code → filename 映射）
+                    // 插件表情包（code → filename 映射）—— 懒加载优化
+                    var emojiObserver = new IntersectionObserver(function(entries) {
+                        entries.forEach(function(entry) {
+                            if (entry.isIntersecting) {
+                                var img = entry.target;
+                                if (img.dataset.src) {
+                                    img.src = img.dataset.src;
+                                    img.removeAttribute('data-src');
+                                }
+                                emojiObserver.unobserve(img);
+                            }
+                        });
+                    }, { root: emojiContent, rootMargin: '40px' });
+
                     Object.keys(data.emojis).forEach(function(code) {
                         const img = document.createElement('img');
-                        img.src = data.url + data.emojis[code];
+                        img.dataset.src = data.url + data.emojis[code]; // 延迟加载
                         img.title = code;
                         img.alt = code;
-                        img.style.cssText = 'width:52px;height:52px;cursor:pointer;margin:4px;border-radius:6px;object-fit:contain;transition:transform 0.2s;';
+                        img.style.cssText = 'width:52px;height:52px;cursor:pointer;margin:4px;border-radius:6px;object-fit:contain;transition:transform 0.2s;background:var(--bs-light);';
                         img.addEventListener('mouseenter', function() { this.style.transform = 'scale(1.2)'; });
                         img.addEventListener('mouseleave', function() { this.style.transform = 'scale(1)'; });
                         img.addEventListener('click', function() {
@@ -202,6 +215,7 @@ function initCommentToolbar() {
                             emojiPanel.style.display = 'none';
                         });
                         emojiContent.appendChild(img);
+                        emojiObserver.observe(img);
                     });
                 }
             });
@@ -380,8 +394,69 @@ function initCommentsToggle() {
     });
 }
 
+// ====== 评论删除（悬浮弹窗） ======
+function initCommentDelete() {
+    function dismissPop(pop) {
+        if (!pop || pop.dataset.removing) return;
+        pop.dataset.removing = '1';
+        pop.classList.add('pop-out');
+        setTimeout(function() { pop.remove(); }, 100);
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.comment-delete-popover') && !e.target.closest('.comment-delete-btn')) {
+            document.querySelectorAll('.comment-delete-popover').forEach(function(el) { dismissPop(el); });
+        }
+    });
+
+    document.querySelectorAll('.comment-delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var existing = document.querySelector('.comment-delete-popover');
+            if (existing) { dismissPop(existing); if (existing._btn === this) return; }
+
+            const pop = document.createElement('div');
+            pop.className = 'comment-delete-popover';
+            pop._btn = this;
+            pop.innerHTML = '<div class="pop-arrow"></div><span>确定删除这条评论？</span><div class="pop-actions"><span class="pop-yes">确认</span><span class="pop-no">取消</span></div>';
+            document.body.appendChild(pop);
+
+            // 定位在按钮下方
+            const rect = this.getBoundingClientRect();
+            pop.style.top = (rect.bottom + 6 + window.scrollY) + 'px';
+            pop.style.left = (rect.left + rect.width/2 + window.scrollX) + 'px';
+
+            const commentId = this.dataset.commentId;
+            const btnEl = this;
+
+            pop.querySelector('.pop-yes').addEventListener('click', function() {
+                pop.innerHTML = '<span>删除中...</span>';
+                const fd = new FormData();
+                fd.append('action', 'boxmoe_delete_comment');
+                fd.append('comment_id', commentId);
+                fetch(ajax_object.ajaxurl, { method: 'POST', credentials: 'same-origin', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const item = btnEl.closest('.comment-item');
+                        if (item) { item.style.transition = 'opacity .3s'; item.style.opacity = '0'; setTimeout(() => item.remove(), 300); }
+                        dismissPop(pop);
+                    } else {
+                        pop.innerHTML = '<span style="color:var(--bs-danger)">'+(data.data?.message||'失败')+'</span>';
+                        setTimeout(() => dismissPop(pop), 1500);
+                    }
+                })
+                .catch(() => { pop.innerHTML = '<span style="color:var(--bs-danger)">网络错误</span>'; setTimeout(() => dismissPop(pop), 1500); });
+            });
+
+            pop.querySelector('.pop-no').addEventListener('click', function() { dismissPop(pop); });
+        });
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     initCommentReply();
     initCommentToolbar();
     initCommentsToggle();
+    initCommentDelete();
 });

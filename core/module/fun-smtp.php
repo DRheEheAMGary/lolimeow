@@ -10,6 +10,47 @@ if(!defined('ABSPATH')){
     exit;
 }
 if(get_boxmoe('boxmoe_smtp_mail_switch')){
+    // 防止同一业务被重复请求或重复钩子触发时发送两封完全相同的邮件。
+    function boxmoe_smtp_mail_dedupe_key($mail) {
+        $to = $mail['to'] ?? '';
+        if (is_array($to)) {
+            $to = array_map('strtolower', array_map('trim', $to));
+            sort($to);
+        } else {
+            $to = strtolower(trim((string)$to));
+        }
+        return 'boxmoe_mail_' . md5(wp_json_encode([
+            'to' => $to,
+            'subject' => (string)($mail['subject'] ?? ''),
+            'message' => (string)($mail['message'] ?? ''),
+            'attachments' => $mail['attachments'] ?? [],
+        ]));
+    }
+
+    function boxmoe_smtp_prevent_duplicate($return, $mail) {
+        if ($return !== null) return $return;
+        $key = boxmoe_smtp_mail_dedupe_key($mail);
+        if (get_transient($key)) {
+            return true;
+        }
+        set_transient($key, 'pending', 5 * MINUTE_IN_SECONDS);
+        return null;
+    }
+    add_filter('pre_wp_mail', 'boxmoe_smtp_prevent_duplicate', 10, 2);
+
+    function boxmoe_smtp_mark_mail_sent($mail) {
+        set_transient(boxmoe_smtp_mail_dedupe_key($mail), 'sent', 2 * MINUTE_IN_SECONDS);
+    }
+    add_action('wp_mail_succeeded', 'boxmoe_smtp_mark_mail_sent');
+
+    function boxmoe_smtp_release_failed_mail($error) {
+        $mail = $error instanceof WP_Error ? $error->get_error_data() : [];
+        if (is_array($mail)) {
+            delete_transient(boxmoe_smtp_mail_dedupe_key($mail));
+        }
+    }
+    add_action('wp_mail_failed', 'boxmoe_smtp_release_failed_mail');
+
     // 添加管理菜单
     add_action('admin_menu', 'boxmoe_smtp_menu');
     
