@@ -143,6 +143,64 @@
     return out;
   }
 
+  /**
+   * 处理用户按 Markdown 习惯输入的：
+   *   $$
+   *   x \le m
+   *   $$
+   * 在 Gutenberg 里这会变成三个段落，需要把整段序列合成一个 Math 区块。
+   */
+  function tryConvertBlockSequence(blocks) {
+    for (var i = 0; i < blocks.length; i++) {
+      var open = blocks[i];
+      if (open.name !== 'core/paragraph' || String(open.attributes.content || '').trim() !== '$$') {
+        continue;
+      }
+      var closeIndex = -1;
+      for (var j = i + 1; j < blocks.length; j++) {
+        if (blocks[j].name !== 'core/paragraph') {
+          break;
+        }
+        if (String(blocks[j].attributes.content || '').trim() === '$$') {
+          closeIndex = j;
+          break;
+        }
+      }
+      if (closeIndex === -1) {
+        continue;
+      }
+
+      var lines = [];
+      var ok = true;
+      for (var k = i + 1; k < closeIndex; k++) {
+        var inner = blocks[k];
+        if (inner.name !== 'core/paragraph') {
+          ok = false;
+          break;
+        }
+        var text = htmlToText(inner.attributes.content || '').trim();
+        if (text !== '') {
+          lines.push(text);
+        }
+      }
+      var latex = lines.join('\n').trim();
+      if (!ok || latex === '') {
+        continue;
+      }
+
+      var ids = [];
+      for (var n = i; n <= closeIndex; n++) {
+        ids.push(blocks[n].clientId);
+      }
+      dispatch('core/block-editor').replaceBlocks(
+        ids,
+        createBlock('core/math', { latex: latex })
+      );
+      return true;
+    }
+    return false;
+  }
+
   function collectParagraphs(blocks, out) {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
@@ -168,7 +226,11 @@
     converting = true;
     getLatexToMathML().then(function (toMathML) {
       // 重新取一次，避免异步期间数据已变化
-      var blocks = collectParagraphs(select('core/block-editor').getBlocks(), []);
+      var topBlocks = select('core/block-editor').getBlocks();
+      if (tryConvertBlockSequence(topBlocks)) {
+        return;
+      }
+      var blocks = collectParagraphs(topBlocks, []);
       blocks.forEach(function (block) {
         var content = String(block.attributes.content || '');
         if (content.indexOf('$') === -1) {
