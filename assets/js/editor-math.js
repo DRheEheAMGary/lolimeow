@@ -306,9 +306,26 @@
     if (!editable) {
       return;
     }
+
+    // Gutenberg 会把行内 math 包在 span 里，并在后面放一个零宽字符。
+    // 光标要落在 span 外面、零宽字符后面，否则会像“卡在数学块里”。
+    var anchor = target.parentElement;
+    if (!anchor || anchor === editable || anchor.closest('[contenteditable="true"]') !== editable) {
+      anchor = target;
+    }
+
     var range = doc.createRange();
-    range.setStartAfter(target);
+    range.setStartAfter(anchor);
     range.collapse(true);
+
+    var after = anchor.nextSibling;
+    if (after && after.nodeType === 3) {
+      var value = after.nodeValue || '';
+      if (value.charAt(0) === '\uFEFF') {
+        range.setStart(after, 1);
+        range.collapse(true);
+      }
+    }
     var sel = snapshot.win.getSelection ? snapshot.win.getSelection() : null;
     if (!sel) {
       return;
