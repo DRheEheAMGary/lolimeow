@@ -56,22 +56,31 @@
     return false;
   }
 
-  /** 只转换单个 $...$，跳过 $$...$$、\$ 与代码块内容 */
-  function convertInlineHtml(html, toMathML) {
-    if (html.indexOf('$') === -1) {
-      return html;
-    }
-    // 包含链接、加粗等富文本标签时暂不处理，避免破坏 HTML 结构
-    if (hasUnsupportedTags(html, ['br'])) {
-      return html;
+  /**
+   * 把一段纯文本里的 $...$ 转成 <math> 节点。
+   * 只处理文本节点，保留 <strong>/<a>/<em> 等已有格式。
+   */
+  function appendInlineMath(text, toMathML, frag) {
+    if (text.indexOf('$') === -1) {
+      frag.appendChild(document.createTextNode(text));
+      return;
     }
 
     var out = '';
     var i = 0;
-    while (i < html.length) {
-      var ch = html.charAt(i);
+    var changed = false;
 
-      if (ch === '\\' && html.charAt(i + 1) === '$') {
+    function flush() {
+      if (out !== '') {
+        frag.appendChild(document.createTextNode(out));
+        out = '';
+      }
+    }
+
+    while (i < text.length) {
+      var ch = text.charAt(i);
+
+      if (ch === '\\' && text.charAt(i + 1) === '$') {
         out += '\\$';
         i += 2;
         continue;
@@ -84,23 +93,22 @@
       }
 
       // $$...$$ 原样保留，不做行内数学
-      if (html.charAt(i + 1) === '$') {
+      if (text.charAt(i + 1) === '$') {
         out += '$$';
         i += 2;
         continue;
       }
 
-      // 找下一个未转义的单个 $
       var j = i + 1;
       var found = -1;
-      while (j < html.length) {
-        var c = html.charAt(j);
+      while (j < text.length) {
+        var c = text.charAt(j);
         if (c === '\\') {
           j += 2;
           continue;
         }
         if (c === '$') {
-          if (html.charAt(j + 1) === '$') {
+          if (text.charAt(j + 1) === '$') {
             j += 2;
             continue;
           }
@@ -119,7 +127,7 @@
         continue;
       }
 
-      var latex = html.slice(i + 1, found);
+      var latex = text.slice(i + 1, found);
       if (latex.trim() === '') {
         out += ch;
         i++;
@@ -130,17 +138,57 @@
       try {
         mathML = toMathML(latex, { displayMode: false });
       } catch (e) {
-        // 解析失败时保持原文，避免输入被吞掉
-        out += html.slice(i, found + 1);
+        out += text.slice(i, found + 1);
         i = found + 1;
         continue;
       }
 
-      out += '<math data-latex="' + escapeAttr(latex) + '">' + mathML + '</math>';
+      flush();
+      var math = document.createElement('math');
+      math.setAttribute('data-latex', latex);
+      math.innerHTML = mathML;
+      frag.appendChild(math);
+      changed = true;
       i = found + 1;
     }
 
-    return out;
+    flush();
+    return changed;
+  }
+
+  /** 转换段落 HTML：只用 DOM 处理文本节点，避免破坏加粗、链接等标签 */
+  function convertInlineHtml(html, toMathML) {
+    if (html.indexOf('$') === -1) {
+      return html;
+    }
+
+    var root = document.createElement('div');
+    root.innerHTML = html;
+
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [];
+    while (walker.nextNode()) {
+      nodes.push(walker.currentNode);
+    }
+
+    var changed = false;
+    nodes.forEach(function (node) {
+      var parent = node.parentElement;
+      if (parent && parent.closest('code,pre,script,style,math')) {
+        return;
+      }
+      var text = node.nodeValue || '';
+      if (text.indexOf('$') === -1) {
+        return;
+      }
+      var frag = document.createDocumentFragment();
+      if (appendInlineMath(text, toMathML, frag)) {
+        node.parentNode.replaceChild(frag, node);
+        changed = true;
+      }
+    });
+
+    return changed ? root.innerHTML : html;
   }
 
   /**
