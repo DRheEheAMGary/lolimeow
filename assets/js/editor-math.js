@@ -249,6 +249,75 @@
     return false;
   }
 
+  function getEditorDocument() {
+    var iframe = document.querySelector('iframe[name="editor-canvas"]');
+    return iframe && iframe.contentDocument ? iframe.contentDocument : document;
+  }
+
+  function getEditorWindow() {
+    var iframe = document.querySelector('iframe[name="editor-canvas"]');
+    return iframe && iframe.contentWindow ? iframe.contentWindow : window;
+  }
+
+  /** 记录当前光标位置，用于转换后恢复，避免光标跳到行首 */
+  function captureCaret(clientId) {
+    var doc = getEditorDocument();
+    var win = getEditorWindow();
+    var sel = win.getSelection ? win.getSelection() : null;
+    if (!sel || !sel.rangeCount || !sel.anchorNode) {
+      return null;
+    }
+    var node = sel.anchorNode;
+    if (!doc.contains(node)) {
+      return null;
+    }
+    var el = node.nodeType === 3 ? node.parentElement : node;
+    var editable = el && el.closest ? el.closest('[contenteditable="true"]') : null;
+    if (!editable) {
+      return null;
+    }
+    var blockEl = editable.closest('[data-block]');
+    if (!blockEl || blockEl.getAttribute('data-block') !== clientId) {
+      return null;
+    }
+    var range = doc.createRange();
+    range.selectNodeContents(editable);
+    range.setEnd(sel.anchorNode, sel.anchorOffset);
+    var offset = range.toString().length;
+    var total = (editable.textContent || '').length;
+    return { doc: doc, win: win, editable: editable, atEnd: offset >= total - 1 };
+  }
+
+  function restoreCaretAfterMath(clientId, snapshot) {
+    if (!snapshot) {
+      return;
+    }
+    var doc = snapshot.doc;
+    var blockEl = doc.querySelector('[data-block="' + (window.CSS && CSS.escape ? CSS.escape(clientId) : clientId) + '"]');
+    if (!blockEl) {
+      return;
+    }
+    var maths = blockEl.querySelectorAll('math[data-latex]');
+    if (!maths.length) {
+      return;
+    }
+    var target = maths[maths.length - 1];
+    var editable = target.closest('[contenteditable="true"]');
+    if (!editable) {
+      return;
+    }
+    var range = doc.createRange();
+    range.setStartAfter(target);
+    range.collapse(true);
+    var sel = snapshot.win.getSelection ? snapshot.win.getSelection() : null;
+    if (!sel) {
+      return;
+    }
+    sel.removeAllRanges();
+    sel.addRange(range);
+    editable.focus();
+  }
+
   function collectParagraphs(blocks, out) {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
@@ -304,9 +373,15 @@
         }
 
         // 段落中的单美元行内公式
+        var caret = captureCaret(block.clientId);
         var next = convertInlineHtml(content, toMathML);
         if (next !== content) {
           dispatch('core/block-editor').updateBlockAttributes(block.clientId, { content: next });
+          if (caret && caret.atEnd) {
+            window.setTimeout(function () {
+              restoreCaretAfterMath(block.clientId, caret);
+            }, 30);
+          }
         }
       });
     }).catch(function (err) {
