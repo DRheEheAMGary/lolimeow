@@ -88,12 +88,14 @@ if ($show_masked) {
                 <div class="profile-avatar-wrap" id="profile-avatar-wrap">
                     <input type="file" id="profile-avatar-input" accept=".jpg,.jpeg,.png,.gif,.webp" style="display:none;">
                 <?php endif; ?>
-                    <img src="<?php echo boxmoe_lazy_load_images(); ?>"
-                         data-src="<?php echo $show_masked ? get_avatar_url(0) : boxmoe_get_avatar_url($user_id, 120); ?>"
-                         alt="<?php echo esc_attr($profile_user->display_name); ?>"
-                         class="rounded-circle lazy"
-                         style="width:100px;height:100px;object-fit:cover;"
-                         id="profile-avatar-img">
+                    <?php echo boxmoe_avatar_img($user_id, 100, array(
+                        'url'   => $show_masked ? get_avatar_url(0) : '',
+                        'frame' => !$show_masked,
+                        'alt'   => $profile_user->display_name,
+                        'class' => 'rounded-circle',
+                        'lazy'  => true,
+                        'id'    => 'profile-avatar-img',
+                    )); ?>
                     <?php if ($can_edit_avatar): ?>
                     <div class="avatar-overlay">
                         <i class="fa fa-camera"></i>
@@ -328,7 +330,7 @@ if ($show_masked) {
             <article class="post-list list-one row <?php echo boxmoe_border_setting(); ?>">
                 <div class="post-list-img">
                     <figure class="mb-4 mb-lg-0 zoom-img">
-                        <a href="<?php the_permalink(); ?>" title="<?php the_title(); ?>">
+                        <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" title="<?php the_title(); ?>">
                             <img src="<?php echo boxmoe_lazy_load_images(); ?>"
                                  data-src="<?php echo boxmoe_article_thumbnail_src(); ?>"
                                  alt="<?php the_title(); ?>" class="img-fluid rounded-3 lazy">
@@ -350,15 +352,13 @@ if ($show_masked) {
                     </div></div>
                     <div class="mt-2 mb-2">
                         <h3 class="post-title h4">
-                            <a href="<?php the_permalink(); ?>" title="<?php the_title(); ?>" class="text-reset"><?php the_title(); ?></a>
+                            <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" title="<?php the_title(); ?>" class="text-reset"><?php the_title(); ?></a>
                         </h3>
                         <p class="post-content"><?php echo _get_excerpt(80); ?></p>
                     </div>
                     <div class="post-meta align-items-center">
                         <div class="post-list-avatar">
-                            <img src="<?php echo boxmoe_lazy_load_images(); ?>"
-                                 data-src="<?php echo boxmoe_get_avatar_url($user_id, 80); ?>"
-                                 alt="avatar" class="avatar lazy">
+                            <?php echo boxmoe_avatar_img($user_id, 55, array('class' => 'avatar', 'lazy' => true, 'alt' => 'avatar')); ?>
                         </div>
                         <div class="post-meta-info">
                             <div class="post-meta-stats">
@@ -413,9 +413,7 @@ if ($show_masked) {
             while ($shuoshuo_query->have_posts()): $shuoshuo_query->the_post(); ?>
             <article class="shuoshuo-post <?php echo boxmoe_border_setting(); ?>">
                 <div class="shuoshuo-avatar-wrap">
-                    <img src="<?php echo boxmoe_lazy_load_images(); ?>"
-                         data-src="<?php echo boxmoe_get_avatar_url($user_id, 80); ?>"
-                         alt="avatar" class="shuoshuo-avatar lazy">
+                    <?php echo boxmoe_avatar_img($user_id, 44, array('class' => 'shuoshuo-avatar', 'lazy' => true, 'alt' => 'avatar')); ?>
                 </div>
                 <div class="shuoshuo-card-body">
                     <div class="shuoshuo-meta-top">
@@ -426,7 +424,7 @@ if ($show_masked) {
                         <span class="shuoshuo-time"><?php echo get_the_time('m-d H:i'); ?></span>
                     </div>
                     <div class="shuoshuo-content">
-                        <a href="<?php the_permalink(); ?>" style="color:inherit;text-decoration:none;">
+                        <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" style="color:inherit;text-decoration:none;">
                             <?php the_content(); ?>
                         </a>
                     </div>
@@ -434,7 +432,7 @@ if ($show_masked) {
                         <span class="shuoshuo-stat">
                             <i class="fa fa-street-view"></i><?php echo getPostViews(get_the_ID()); ?>
                         </span>
-                        <a href="<?php the_permalink(); ?>#comments-container" class="shuoshuo-stat">
+                        <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>#comments-container" class="shuoshuo-stat">
                             <i class="fa fa-comments-o"></i><?php echo get_comments_number(); ?>
                         </a>
                     </div>
@@ -477,9 +475,7 @@ if ($show_masked) {
                 $GLOBALS['comment'] = $comment; ?>
             <div id="comment-<?php comment_ID(); ?>" class="comment-item parent">
                 <div class="comment-avatar">
-                    <img src="<?php echo boxmoe_lazy_load_images(); ?>"
-                         data-src="<?php echo boxmoe_get_avatar_url($comment->comment_author_email, 60); ?>"
-                         alt="评论头像" class="lazy">
+                    <?php echo boxmoe_avatar_img($comment->comment_author_email, 48, array('class' => '', 'lazy' => true, 'alt' => '评论头像')); ?>
                 </div>
                 <div class="comment-content">
                     <div class="comment-meta">
@@ -585,7 +581,7 @@ if ($show_masked) {
                 <article class="post-list list-one row <?php echo boxmoe_border_setting(); ?>">
                     <div class="post-list-img">
                         <figure class="mb-4 mb-lg-0 zoom-img">
-                            <a href="<?php the_permalink(); ?>" title="<?php the_title(); ?>">
+                            <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" title="<?php the_title(); ?>">
                                 <img src="<?php echo boxmoe_lazy_load_images(); ?>"
                                      data-src="<?php echo boxmoe_article_thumbnail_src(); ?>"
                                      alt="<?php the_title(); ?>" class="img-fluid rounded-3 lazy">
@@ -607,15 +603,13 @@ if ($show_masked) {
                         </div></div>
                         <div class="mt-2 mb-2">
                             <h3 class="post-title h4">
-                                <a href="<?php the_permalink(); ?>" title="<?php the_title(); ?>" class="text-reset"><?php the_title(); ?></a>
+                                <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" title="<?php the_title(); ?>" class="text-reset"><?php the_title(); ?></a>
                             </h3>
                             <p class="post-content"><?php echo _get_excerpt(80); ?></p>
                         </div>
                         <div class="post-meta align-items-center">
                             <div class="post-list-avatar">
-                                <img src="<?php echo boxmoe_lazy_load_images(); ?>"
-                                     data-src="<?php echo boxmoe_get_avatar_url($user_id, 80); ?>"
-                                     alt="avatar" class="avatar lazy">
+                                <?php echo boxmoe_avatar_img($user_id, 55, array('class' => 'avatar', 'lazy' => true, 'alt' => 'avatar')); ?>
                             </div>
                             <div class="post-meta-info">
                                 <div class="post-meta-stats">
@@ -679,7 +673,7 @@ if ($show_masked) {
                     if (!$fu) continue; ?>
                 <div class="d-flex align-items-center gap-3 py-3 border-bottom">
                     <a href="<?php echo esc_url(boxmoe_get_user_profile_url($fuid)); ?>">
-                        <img src="<?php echo boxmoe_get_avatar_url($fuid, 42); ?>" class="rounded-circle" style="width:42px;height:42px;object-fit:cover;">
+                        <?php echo boxmoe_avatar_img($fuid, 42, array('class' => 'rounded-circle', 'alt' => '')); ?>
                     </a>
                     <div class="flex-fill">
                         <a href="<?php echo esc_url(boxmoe_get_user_profile_url($fuid)); ?>" class="fw-semibold text-reset text-decoration-none"><?php echo esc_html($fu->display_name); ?></a>
@@ -712,7 +706,7 @@ if ($show_masked) {
                     if (!$fu) continue; ?>
                 <div class="d-flex align-items-center gap-3 py-3 border-bottom">
                     <a href="<?php echo esc_url(boxmoe_get_user_profile_url($fuid)); ?>">
-                        <img src="<?php echo boxmoe_get_avatar_url($fuid, 42); ?>" class="rounded-circle" style="width:42px;height:42px;object-fit:cover;">
+                        <?php echo boxmoe_avatar_img($fuid, 42, array('class' => 'rounded-circle', 'alt' => '')); ?>
                     </a>
                     <div class="flex-fill">
                         <a href="<?php echo esc_url(boxmoe_get_user_profile_url($fuid)); ?>" class="fw-semibold text-reset text-decoration-none"><?php echo esc_html($fu->display_name); ?></a>

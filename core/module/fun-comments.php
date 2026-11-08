@@ -27,7 +27,7 @@ function boxmoe_comment($comment, $args = array(), $depth = 1) {
             <?php if ($comment->user_id && function_exists('boxmoe_get_user_profile_url')): ?>
             <a href="<?php echo esc_url(boxmoe_get_user_profile_url($comment->user_id)); ?>">
             <?php endif; ?>
-            <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url($comment->comment_author_email, 60); ?>" alt="评论头像" class="lazy">
+            <?php echo boxmoe_avatar_img($comment->comment_author_email, 48, array('class' => '', 'lazy' => true, 'alt' => '评论头像')); ?>
             <?php if ($comment->user_id && function_exists('boxmoe_get_user_profile_url')): ?>
             </a>
             <?php endif; ?>

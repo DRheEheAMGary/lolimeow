@@ -1,0 +1,108 @@
+/* ---------------------------------------------------------------------------
+ *  DRheEheAM SSO 头像框
+ *
+ *  框图是透明画布：中间透出头像，四周装饰超出头像圆。
+ *  所以容器 overflow: visible，伪元素绝对定位；头像本身仍圆角裁切。
+ * ------------------------------------------------------------------------- */
+
+.sso-av {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 0;
+  flex: none;
+}
+
+.sso-av:not(.sso-av--auto) > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* get_avatar() 的输出交给主题 CSS 定尺寸，不强行铺满 wrapper */
+.sso-av--auto {
+  display: inline-block;
+  vertical-align: middle;
+  width: fit-content;
+  height: fit-content;
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+.sso-av--auto > img {
+  /* 不写 width/height，让主题对 .avatar / 父级 img 的规则决定尺寸 */
+  display: inline-block;
+}
+
+.sso-av--framed {
+  overflow: visible !important;
+  z-index: 3;
+}
+
+/* 只有挂框时强制圆形；没有框时保留 img 自己的 rounded-3 / rounded-circle */
+.sso-av--framed > img {
+  border-radius: 50%;
+}
+
+.sso-av[data-frame]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100% * var(--sso-frame-scale, 1.6));
+  height: calc(100% * var(--sso-frame-scale, 1.6));
+  transform: translate(-50%, -50%);
+  background: var(--sso-frame) center / contain no-repeat;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* 父容器不能把框裁掉：头像在评论、导航、文章作者等位置的父级
+   常常带 overflow:hidden。只对真的有框的容器放开。 */
+*:has(> .sso-av[data-frame]) {
+  overflow: visible !important;
+}
+
+/* 小屏/密集列表里父级通常是固定宽高，框会向外扩展；
+   给相邻内容留一点视觉呼吸，避免紧贴文字。 */
+.comment-avatar:has(> .sso-av[data-frame]),
+.comment-item .comment-avatar:has(.sso-av[data-frame]),
+.comment-avatar:has(.sso-av[data-frame]) {
+  margin-right: 16px;
+}
+
+/* 有框时头像必须是正圆：主题列表的菱形 clip-path、单篇文章头像的 padding/border
+   都会让头像和框的透明洞对不齐，这里统一清掉。 */
+.sso-av--framed > img {
+  border-radius: 50% !important;
+  clip-path: none !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+/* 这些父级原本用 overflow:hidden 裁头像；有框时必须放开。
+   用 :has 只影响真正挂了框的容器。 */
+.comment-avatar:has(.sso-av[data-frame]),
+.user-avatar:has(.sso-av[data-frame]),
+.profile-avatar:has(.sso-av[data-frame]),
+.profile-avatar-wrap:has(.sso-av[data-frame]),
+.post-list-avatar:has(.sso-av[data-frame]),
+.shuoshuo-avatar-wrap:has(.sso-av[data-frame]),
+.single-meta:has(.sso-av[data-frame]),
+.avatar-upload-zone:has(.sso-av[data-frame]) {
+  overflow: visible !important;
+}
+
+/* 40–55px 的小头像挂框后会向外扩 12–20px，给相邻文字留出空间，避免压字 */
+.boxmoe_header .user-avatar:has(.sso-av[data-frame]) {
+  margin-right: 22px !important;
+}
+.comment-avatar:has(.sso-av[data-frame]) {
+  margin-right: 16px;
+}
+.post-list-avatar:has(.sso-av[data-frame]) {
+  margin-right: 10px;
+}
+.single-meta:has(.sso-av[data-frame]) {
+  column-gap: 12px;
+}

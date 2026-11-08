@@ -91,7 +91,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
                     <a href="<?php echo boxmoe_get_user_profile_url(get_current_user_id()); ?>" class="mobile-menu-item">
                       <i class="fa fa-user-circle"></i>
                       <span>个人主页</span></a>
-                      <?php if(current_user_can('administrator')): ?>
+                      <?php if(current_user_can('manage_options')): ?>
                     <a href="<?php echo admin_url(); ?>" class="mobile-menu-item">
                       <i class="fa fa-cog"></i>
                       <span>后台管理</span></a>
@@ -136,7 +136,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
             <div class="mobile-logged-user-wrapper d-block d-lg-none">
               <a href="<?php echo boxmoe_get_user_profile_url(get_current_user_id()); ?>" class="user-info-wrap d-flex align-items-center">
                 <div class="user-avatar">
-                  <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 100); ?>" alt="avatar" class="img-fluid rounded-3 lazy">
+                  <?php echo boxmoe_avatar_img(get_current_user_id(), 40, array('class' => 'img-fluid rounded-3', 'lazy' => true, 'alt' => 'avatar')); ?>
                 </div>
                 <div class="user-info">
                   <div class="user-name"><?php echo get_the_author_meta('display_name', get_current_user_id()); ?></div>
@@ -212,7 +212,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
                   <div class="user-info-wrap d-flex align-items-center dropdown">
                     <a href="<?php echo boxmoe_get_user_profile_url(get_current_user_id()); ?>" class="dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
                       <div class="user-avatar">
-                      <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_current_user_id(), 100); ?>" alt="avatar" class="img-fluid rounded-3 lazy">
+                      <?php echo boxmoe_avatar_img(get_current_user_id(), 40, array('class' => 'img-fluid rounded-3', 'lazy' => true, 'alt' => 'avatar')); ?>
                     </div>
                       <div class="user-info">
                         <div class="user-name"><?php echo get_the_author_meta('display_name', get_current_user_id()); ?></div>
@@ -228,7 +228,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}?>
                         <a class="dropdown-item" href="/usersettings">
                           <i class="fa fa-cog"></i>个人设置</a>
                       </li>
-                      <?php if(current_user_can('edit_posts')): ?>
+                      <?php if(current_user_can('manage_options')): ?>
                       <li>
                         <a class="dropdown-item" target="_blank" href="<?php echo admin_url(); ?>">
                           <i class="fa fa-dashboard"></i>后台管理</a>

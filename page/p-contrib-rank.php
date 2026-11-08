@@ -40,7 +40,7 @@ $rows = $wpdb->get_results($wpdb->prepare(
             <div class="d-flex align-items-center gap-3 py-3 border-bottom">
                 <span class="fw-bold" style="width:28px;text-align:center;font-size:1.1rem;color:<?php echo $rc; ?>;"><?php echo $rank; ?></span>
                 <a href="<?php echo esc_url(boxmoe_get_user_profile_url($uid)); ?>" class="text-reset text-decoration-none">
-                    <img src="<?php echo boxmoe_get_avatar_url($uid, 36); ?>" alt="" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;">
+                    <?php echo boxmoe_avatar_img($uid, 36, array('class' => 'rounded-circle', 'alt' => '')); ?>
                 </a>
                 <span class="flex-fill">
                     <a href="<?php echo esc_url(boxmoe_get_user_profile_url($uid)); ?>" class="text-reset text-decoration-none fw-semibold"><?php echo esc_html($name); ?></a>

@@ -12,7 +12,7 @@ if(!defined('ABSPATH')){
 
 // 文章新窗口打开开关--------------------------boxmoe.com--------------------------
 function boxmoe_article_new_window() {
-    return get_boxmoe('boxmoe_article_new_window_switch')?'target="_blank"':'';
+    return get_boxmoe('boxmoe_article_new_window_switch')?'target="_blank" rel="noopener"':'';
 }
 
 // 开启所有文章形式支持--------------------------boxmoe.com--------------------------

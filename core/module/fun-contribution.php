@@ -1381,6 +1381,9 @@ function boxmoe_tag_admin_css() {
     ?>
 <style>
 .tag-edit-input { width: 160px; }
+.tag-readonly { color: #475569; }
+.tag-admin-notice { margin: 8px 0 10px; padding: 9px 13px; border-left: 3px solid #8b3dff; background: #faf7ff; color: #475569; font-size: 13px; }
+.tag-admin-hint { margin: 0 0 10px; color: #64748b; font-size: 13px; }
 .tag-current { font-weight: 600; }
 .tag-level-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; background: #f1f5f9; color: #475569; }
 .contrib-tag-badge { display: inline-flex; align-items: center; border-radius: 4px; font-size: 12px; font-weight: 700; overflow: hidden; line-height: 1.4; }
@@ -1408,21 +1411,6 @@ function boxmoe_tag_admin_css() {
 
 function boxmoe_tag_admin_page() {
     global $wpdb;
-
-    // 保存Tag
-    if (isset($_POST['save_tags']) && wp_verify_nonce($_POST['_tag_nonce'] ?? '', 'boxmoe_tag_save')) {
-        $tags = $_POST['tags'] ?? [];
-        $saved = 0;
-        foreach ($tags as $uid => $tag) {
-            $uid = (int) $uid;
-            $tag = sanitize_text_field(trim($tag));
-            if ($uid > 0) {
-                update_user_meta($uid, 'boxmoe_contrib_tag', $tag);
-                $saved++;
-            }
-        }
-        echo '<div class="notice notice-success is-dismissible"><p>已保存 <strong>' . $saved . '</strong> 个用户的Tag。</p></div>';
-    }
 
     $search = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
     $paged = max(1, isset($_GET['tp']) ? (int)$_GET['tp'] : 1);
@@ -1457,12 +1445,13 @@ function boxmoe_tag_admin_page() {
     <div class="wrap contrib-wrap">
         <div class="contrib-header">
             <h1>Tag管理</h1>
-            <span style="color:#64748b;font-size:13px;">
-                自定义Tag优先 &nbsp;|&nbsp; 格式 <code>lv{等级} {Tag}</code> &nbsp;|&nbsp;
-                <a href="#tag-reference">跳转等级参考表 ↓</a>
-            </span>
         </div>
-        <p>为每个用户设置自定义Tag，留空则使用默认Tag（按贡献值等级自动分配）。</p>
+        <div class="tag-admin-notice">Tag 已迁移到 SSO：WordPress 后台只读，实际修改请到 SSO 账号中心或活动站后台。</div>
+        <p class="tag-admin-hint">
+            自定义Tag优先 &nbsp;|&nbsp; 格式 <code>lv{等级} {Tag}</code> &nbsp;|&nbsp;
+            <a href="#tag-reference">跳转等级参考表 ↓</a>
+        </p>
+        <p>以下为只读视图，自定义Tag由 SSO 同步，留空则使用默认Tag（按贡献值等级自动分配）。</p>
 
         <form method="get" style="margin-bottom:12px; display:flex; gap:8px;">
             <input type="hidden" name="page" value="boxmoe-contrib-tags">
@@ -1473,9 +1462,7 @@ function boxmoe_tag_admin_page() {
             <?php endif; ?>
         </form>
 
-        <form method="post">
-            <?php wp_nonce_field('boxmoe_tag_save', '_tag_nonce'); ?>
-            <table class="wp-list-table widefat fixed striped">
+        <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
                         <th style="width:45px;">#</th>
@@ -1483,7 +1470,7 @@ function boxmoe_tag_admin_page() {
                         <th style="width:85px;">贡献值</th>
                         <th style="width:55px;">等级</th>
                         <th style="width:100px;">默认Tag</th>
-                        <th style="width:200px;">自定义Tag</th>
+                        <th style="width:200px;">自定义Tag（只读）</th>
                         <th>前端展示</th>
                     </tr>
                 </thead>
@@ -1507,11 +1494,12 @@ function boxmoe_tag_admin_page() {
                         <td><strong><?php echo number_format($c, 2); ?></strong></td>
                         <td><span class="tag-level-badge <?php echo $tl_class; ?>">lv<?php echo $lv; ?></span></td>
                         <td style="color:#94a3b8;"><?php echo esc_html(ucfirst($def)); ?></td>
-                        <td>
-                            <input type="text" name="tags[<?php echo $u->ID; ?>]"
-                                   value="<?php echo esc_attr($cust); ?>"
-                                   class="tag-edit-input regular-text"
-                                   placeholder="<?php echo esc_attr(ucfirst($def)); ?>">
+                        <td class="tag-readonly">
+                            <?php if ($cust !== '' && $cust !== null): ?>
+                                <?php echo esc_html($cust); ?>
+                            <?php else: ?>
+                                <span style="color:#94a3b8;">—</span>
+                            <?php endif; ?>
                         </td>
                         <td class="tag-current">
                             <?php echo boxmoe_get_user_tag_badge($u->ID); ?>
@@ -1542,12 +1530,6 @@ function boxmoe_tag_admin_page() {
             </div>
             <?php endif; ?>
 
-            <p style="margin-top:16px;">
-                <button type="submit" name="save_tags" class="button button-primary button-large">
-                    保存所有Tag
-                </button>
-            </p>
-        </form>
 
         <!-- 等级参考表（动态生成） -->
         <div class="postbox" id="tag-reference" style="margin-top:24px; border-radius:10px; overflow:hidden;">

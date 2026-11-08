@@ -41,9 +41,7 @@ $shuoshuo_query = new WP_Query($args);
         <article class="post-list list-one row blog-border shuoshuo-post">
             <div class="post-list-avatar" style="flex:0 0 auto;width:auto;padding:15px 0 15px 10px;">
                 <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>">
-                <img src="<?php boxmoe_lazy_load_images(); ?>"
-                     data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>"
-                     alt="avatar" class="avatar lazy">
+                <?php echo boxmoe_avatar_img(get_the_author_meta('ID'), 55, array('class' => 'avatar', 'lazy' => true, 'alt' => 'avatar')); ?>
                 </a>
             </div>
             <div class="post-list-content" style="padding:15px 10px 15px 5px;">
@@ -62,7 +60,7 @@ $shuoshuo_query = new WP_Query($args);
                     </span>
                 </div>
                 <div class="shuoshuo-content" style="margin-bottom:10px;">
-                    <a href="<?php the_permalink(); ?>" style="color:inherit;text-decoration:none;">
+                    <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" style="color:inherit;text-decoration:none;">
                     <?php the_content(); ?>
                     </a>
                 </div>
@@ -72,7 +70,7 @@ $shuoshuo_query = new WP_Query($args);
                         <i class="fa fa-thumbs-up" style="margin-right:3px;"></i><?php echo getPostLikes(get_the_ID()); ?>
                     </span>
                     <?php endif; ?>
-                    <a href="<?php the_permalink(); ?>#comments-container" style="font-size:0.75rem;color:var(--bs-gray-700);text-decoration:none;">
+                    <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>#comments-container" style="font-size:0.75rem;color:var(--bs-gray-700);text-decoration:none;">
                         <i class="fa fa-comments-o" style="margin-right:3px;"></i><?php echo get_comments_number(); ?>
                     </a>
                     <span style="font-size:0.75rem;color:var(--bs-gray-700);">

@@ -27,14 +27,13 @@ class widget_userinfo extends WP_Widget {
 		$nickname = isset($instance['nickname']) ? $instance['nickname'] : '昵称在这里';
 		$bio = isset($instance['bio']) ? $instance['bio'] : '个人简介文字';
 		$avatarid = isset($instance['avatarid']) ? $instance['avatarid'] : 1;
-		$avatar_url = boxmoe_get_avatar_url($avatarid, 100);
 		echo $before_widget;
 		echo $before_title . $title . $after_title;
 		echo '<div class="widget-content">';	
 		echo '
 		<div class="widget-profile">
 			<div class="profile-avatar">
-				<img src="'.boxmoe_lazy_load_images().'"  class="lazy" data-src="'.esc_url($avatar_url).'" alt="avatar">
+				'.boxmoe_avatar_img($avatarid, 100, array('class' => '', 'lazy' => true, 'alt' => 'avatar')).'
 			</div>
 			<h3 class="profile-name">'. esc_html($nickname) .'</h3>
 			<p class="profile-desc">'. esc_html($bio) .'</p>

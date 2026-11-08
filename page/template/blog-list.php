@@ -16,9 +16,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
         <article class="shuoshuo-post">
             <div class="shuoshuo-avatar-wrap">
                 <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>">
-                <img src="<?php echo boxmoe_lazy_load_images(); ?>"
-                     data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>"
-                     alt="avatar" class="shuoshuo-avatar lazy">
+                <?php echo boxmoe_avatar_img(get_the_author_meta('ID'), 44, array('class' => 'shuoshuo-avatar', 'lazy' => true, 'alt' => 'avatar')); ?>
                 </a>
             </div>
             <div class="shuoshuo-card-body">
@@ -30,7 +28,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                     <span class="shuoshuo-time"><?php echo get_the_time('m-d H:i'); ?></span>
                 </div>
                 <div class="shuoshuo-content">
-                    <a href="<?php the_permalink(); ?>" style="color:inherit;text-decoration:none;">
+                    <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" style="color:inherit;text-decoration:none;">
                     <?php the_content(); ?>
                     </a>
                 </div>
@@ -38,7 +36,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                     <span class="shuoshuo-stat">
                         <i class="fa fa-street-view"></i><?php echo getPostViews(get_the_ID()); ?>
                     </span>
-                    <a href="<?php the_permalink(); ?>#comments-container" class="shuoshuo-stat">
+                    <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>#comments-container" class="shuoshuo-stat">
                         <i class="fa fa-comments-o"></i><?php echo get_comments_number(); ?>
                     </a>
                 </div>
@@ -74,16 +72,14 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                 <div class="mt-2 mb-2">
                     <h3 class="post-title h4">
                         <?php if (is_sticky()): ?><span class="badge" style="background:var(--bs-primary);color:#fff;font-size:0.75rem;vertical-align:baseline;position:relative;top:-1px;margin-right:4px;padding:2px 8px;border-radius:4px;">置顶</span><?php endif; ?>
-                        <a href="<?php the_permalink(); ?>" title="<?php the_title(); ?>" class="text-reset"><?php the_title(); ?></a>
+                        <a <?php echo boxmoe_article_new_window(); ?> href="<?php the_permalink(); ?>" title="<?php the_title(); ?>" class="text-reset"><?php the_title(); ?></a>
                     </h3>
                     <p class="post-content"><?php echo _get_excerpt(80); ?></p>
                 </div>
                 <div class="post-meta align-items-center">
                     <div class="post-list-avatar">
                         <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>">
-                        <img src="<?php echo boxmoe_lazy_load_images(); ?>"
-                             data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 80); ?>"
-                             alt="avatar" class="avatar lazy">
+                        <?php echo boxmoe_avatar_img(get_the_author_meta('ID'), 55, array('class' => 'avatar', 'lazy' => true, 'alt' => 'avatar')); ?>
                         </a>
                     </div>
                     <div class="post-meta-info">

@@ -32,8 +32,7 @@ class widget_comments extends WP_Widget {
 			$content = strip_tags($comment->com_excerpt);
             $content = mb_strimwidth(strip_tags($content), 0, '40', '...', 'UTF-8');
             $content = convert_smilies($content);
-            $lazy_img = boxmoe_lazy_load_images();
-            $comment_avatar = '<img src="'.esc_url($lazy_img).'" data-src="'.esc_url(boxmoe_get_avatar_url($comment->user_id, 60)).'" class="avatar lazy" alt="avatar">';
+            $comment_avatar = boxmoe_avatar_img($comment->user_id, 40, array('class' => 'avatar', 'lazy' => true, 'alt' => 'avatar'));
 			$output .= '<li class="comment-listitem">
 			            <div class="comment-user">
                           <span class="comment-avatar">

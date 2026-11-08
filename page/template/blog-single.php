@@ -36,7 +36,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                         <div class="single-info-left">
                           <div class="single-meta">
                               <a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>">
-                              <img src="<?php echo boxmoe_lazy_load_images(); ?>" data-src="<?php echo boxmoe_get_avatar_url(get_the_author_meta('ID'), 100); ?>" class="avatar lazy" alt="avatar">
+                              <?php echo boxmoe_avatar_img(get_the_author_meta('ID'), 48, array('class' => 'avatar', 'lazy' => true, 'alt' => 'avatar')); ?>
                               </a>
                             <div class="single-author-name">
                               <div class="single-author-info">
