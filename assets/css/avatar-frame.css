@@ -50,6 +50,12 @@
   transform-origin: center center;
 }
 
+/* gold_bubble: 头像略向右下移动 */
+.sso-av[data-frame="gold_bubble"] > img {
+  transform: translate(3%, 2.5%);
+  transform-origin: center center;
+}
+
 .sso-av[data-frame]::after {
   content: "";
   position: absolute;
