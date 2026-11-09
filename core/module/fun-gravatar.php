@@ -147,6 +147,7 @@ function boxmoe_avatar_frame_data($user_id) {
         'diamond_sword' => 'https://sso.dreamgary.cn/assets/frames/diamond_sword.webp',
         'gold_bubble' => 'https://sso.dreamgary.cn/assets/frames/gold_bubble.webp',
         'winter_snow' => 'https://sso.dreamgary.cn/assets/frames/winter_snow.webp',
+        'basori_tiara' => 'https://sso.dreamgary.cn/assets/frames/basori_tiara.webp',
     ];
     // 已知框一律以本地目录的 key→URL 映射为准，避免 cookie/meta 换框后
     // key 与旧 URL 不一致。未来新增框才回退到 meta 里的绝对地址。
@@ -191,7 +192,7 @@ function boxmoe_avatar_frame_attrs($user_id, $size) {
         return '';
     }
 
-    $labels = ['mg' => '毛怪', 'rainbow' => '彩虹', 'diamond_sword' => '钻石剑', 'gold_bubble' => '金色泡泡', 'winter_snow' => '霜雪'];
+    $labels = ['mg' => '毛怪', 'rainbow' => '彩虹', 'diamond_sword' => '钻石剑', 'gold_bubble' => '金色泡泡', 'winter_snow' => '霜雪', 'basori_tiara' => 'Basori Tiara'];
     return ' data-frame="' . esc_attr($frame['key']) . '"'
          . ' data-frame-label="' . esc_attr($labels[$frame['key']] ?? $frame['key']) . '"'
          . ' style="--sso-frame:url(\'' . esc_url($frame['url']) . '\');'
