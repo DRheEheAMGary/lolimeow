@@ -44,6 +44,12 @@
   border-radius: 50%;
 }
 
+/* basori_tiara: 头像按框内黑圈大小缩放，避免被框边缘裁掉 */
+.sso-av[data-frame="basori_tiara"] > img {
+  transform: scale(0.944);
+  transform-origin: center center;
+}
+
 .sso-av[data-frame]::after {
   content: "";
   position: absolute;
