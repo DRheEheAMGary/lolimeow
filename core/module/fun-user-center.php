@@ -501,7 +501,6 @@ function boxmoe_get_settings_profile() {
         'privacy' => array(
             'profile_visibility' => get_user_meta($user_id, 'profile_visibility', true) ?: 'public',
             'about_visibility' => get_user_meta($user_id, 'about_visibility', true) ?: 'public',
-            'contribution_visibility' => get_user_meta($user_id, 'contribution_visibility', true) ?: 'public',
             'posts_visibility' => get_user_meta($user_id, 'posts_visibility', true) ?: 'public',
             'comments_visibility' => get_user_meta($user_id, 'comments_visibility', true) ?: 'public',
             'favorites_visibility' => get_user_meta($user_id, 'favorites_visibility', true) ?: 'public',
@@ -701,7 +700,6 @@ function boxmoe_update_settings_privacy($request) {
     $fields = array(
         'profile_visibility' => 'profile_visibility',
         'about_visibility' => 'about_visibility',
-        'contribution_visibility' => 'contribution_visibility',
         'posts_visibility' => 'posts_visibility',
         'comments_visibility' => 'comments_visibility',
         'favorites_visibility' => 'favorites_visibility',

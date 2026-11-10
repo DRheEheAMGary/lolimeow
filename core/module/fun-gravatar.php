@@ -178,7 +178,7 @@ function boxmoe_avatar_frame_data($user_id) {
 /**
  * 头像容器的公共 class / 属性。
  *
- * 小尺寸（<34px）不显示框：贡献榜/后台列表里的 24px 头像挂上会糊成一片。
+ * 小尺寸（<34px）不显示框：成员列表/后台列表里的 24px 头像挂上会糊成一片。
  */
 function boxmoe_avatar_frame_class($user_id, $size) {
     $frame = boxmoe_avatar_frame_data($user_id);
@@ -293,7 +293,7 @@ function boxmoe_avatar_img($id_or_email, $size = 100, $args = array()) {
 /**
  * get_avatar() 过滤器：核心/插件调用也走统一头像输出。
  *
- * 主题自己的模板不再依赖这个过滤器，但评论区、贡献榜等 get_avatar()
+ * 主题自己的模板不再依赖这个过滤器，但评论区、成员列表等 get_avatar()
  * 调用点仍然会经过这里。
  */
 function boxmoe_get_avatar($avatar, $id_or_email, $size = 96, $default = '', $alt = '', $args = array()) {

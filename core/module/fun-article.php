@@ -130,8 +130,6 @@ function restyle_text($number){
       }else{
           $count++;
           update_post_meta($postID, $count_key, $count);
-          // 浏览量增加事件：贡献值模块据此按增量入账（不改变原有计数行为）
-          do_action('boxmoe_post_viewed', $postID);
       }
   }
 
@@ -372,9 +370,6 @@ function boxmoe_post_like() {
         $count++;
         update_post_meta($post_id, 'post_likes_count', $count);
         set_transient($transient_key, '1', DAY_IN_SECONDS);
-        // 点赞成功事件：贡献值模块据此给作者入账（原有 transient 去重保持不变）
-        do_action('boxmoe_post_liked', $post_id, $count);
-
         wp_send_json_success([
             'count' => $count,
             'message' => '点赞成功'

@@ -129,7 +129,6 @@ $last_login_ip = get_user_meta($user_id, 'last_login_ip', true) ?: '暂无记录
                     $privacy_options = array(
                         array('id'=>'prProfileVisibility', 'icon'=>'fa-home', 'label'=>'个人主页可见性', 'desc'=>'控制谁可以查看您的个人主页', 'value'=>get_user_meta($user_id,'profile_visibility',true)),
                         array('id'=>'prAboutVisibility', 'icon'=>'fa-user', 'label'=>'简介可见性', 'desc'=>'控制谁可以查看您的个人简介', 'value'=>get_user_meta($user_id,'about_visibility',true)),
-                        array('id'=>'prContributionVisibility', 'icon'=>'fa-star', 'label'=>'贡献值可见性', 'desc'=>'控制谁可以查看您的贡献值', 'value'=>get_user_meta($user_id,'contribution_visibility',true)),
                         array('id'=>'prPostsVisibility', 'icon'=>'fa-file-text', 'label'=>'文章列表可见性', 'desc'=>'控制谁可以查看您的文章列表', 'value'=>get_user_meta($user_id,'posts_visibility',true)),
                         array('id'=>'prCommentsVisibility', 'icon'=>'fa-comments', 'label'=>'评论列表可见性', 'desc'=>'控制谁可以查看您的评论记录', 'value'=>get_user_meta($user_id,'comments_visibility',true)),
                         array('id'=>'prFavoritesVisibility', 'icon'=>'fa-heart', 'label'=>'收藏列表可见性', 'desc'=>'控制谁可以查看您的收藏内容', 'value'=>get_user_meta($user_id,'favorites_visibility',true)),
@@ -291,7 +290,7 @@ var _settingsNonce = '<?php echo wp_create_nonce('wp_rest'); ?>';
     var prv = document.getElementById('privacyForm');
     if (prv) prv.addEventListener('submit', function() {
         var btn = document.getElementById('privacySaveBtn'); loading(btn, true);
-        var body = { profile_visibility: document.getElementById('prProfileVisibility').value, about_visibility: document.getElementById('prAboutVisibility').value, contribution_visibility: document.getElementById('prContributionVisibility').value, posts_visibility: document.getElementById('prPostsVisibility').value, comments_visibility: document.getElementById('prCommentsVisibility').value, favorites_visibility: document.getElementById('prFavoritesVisibility').value, following_visibility: document.getElementById('prFollowingVisibility').value, followers_visibility: document.getElementById('prFollowersVisibility').value, allow_follow: document.getElementById('prAllowFollow').value, allow_search_index: document.getElementById('prSearchIndex').value };
+        var body = { profile_visibility: document.getElementById('prProfileVisibility').value, about_visibility: document.getElementById('prAboutVisibility').value, posts_visibility: document.getElementById('prPostsVisibility').value, comments_visibility: document.getElementById('prCommentsVisibility').value, favorites_visibility: document.getElementById('prFavoritesVisibility').value, following_visibility: document.getElementById('prFollowingVisibility').value, followers_visibility: document.getElementById('prFollowersVisibility').value, allow_follow: document.getElementById('prAllowFollow').value, allow_search_index: document.getElementById('prSearchIndex').value };
         fetch(API + '/privacy', { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce() }, credentials: 'same-origin', body: JSON.stringify(body) })
             .then(function(r){ return r.json(); }).then(function(d){ toast(d.message, d.success); }).catch(function(){ toast('保存失败', false); }).finally(function(){ loading(btn, false); });
     });

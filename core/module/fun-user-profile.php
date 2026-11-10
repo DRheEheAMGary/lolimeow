@@ -19,7 +19,6 @@ function boxmoe_user_profile_query_vars($vars) {
     $vars[] = 'username';
     $vars[] = 'boxmoe_user_profile'; // 标记为用户主页请求
     $vars[] = 'boxmoe_user_settings'; // 标记为个人设置请求
-    $vars[] = 'boxmoe_contrib_rank';  // 贡献排行榜
     return $vars;
 }
 add_filter('query_vars', 'boxmoe_user_profile_query_vars');
@@ -43,11 +42,6 @@ function boxmoe_user_profile_rewrite_rules() {
         'index.php?boxmoe_user_settings=1',
         'top'
     );
-    add_rewrite_rule(
-        '^contributors/?$',
-        'index.php?boxmoe_contrib_rank=1',
-        'top'
-    );
 }
 add_action('init', 'boxmoe_user_profile_rewrite_rules');
 
@@ -61,10 +55,6 @@ function boxmoe_user_profile_template($template) {
             exit;
         }
         $t = locate_template('page/p-user-settings.php');
-        if ($t) return $t;
-    }
-    if (get_query_var('boxmoe_contrib_rank')) {
-        $t = locate_template('page/p-contrib-rank.php');
         if ($t) return $t;
     }
     if (get_query_var('boxmoe_user_profile')) {
@@ -81,7 +71,7 @@ add_filter('template_include', 'boxmoe_user_profile_template', 99);
  * 阻止 WordPress 将 /user/xxx 视为 404
  */
 function boxmoe_user_profile_parse_query($query) {
-    if ($query->is_main_query() && (get_query_var('boxmoe_user_profile') || get_query_var('boxmoe_user_settings') || get_query_var('boxmoe_contrib_rank'))) {
+    if ($query->is_main_query() && (get_query_var('boxmoe_user_profile') || get_query_var('boxmoe_user_settings'))) {
         $query->is_404 = false;
         $query->is_page = true;
         $query->is_singular = false;

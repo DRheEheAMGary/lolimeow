@@ -48,9 +48,6 @@ function boxmoe_comment($comment, $args = array(), $depth = 1) {
                     }
                     ?>
                 </span>
-                <?php if ($comment->user_id): ?>
-                    <?php echo boxmoe_get_user_tag_badge($comment->user_id); ?>
-                <?php endif; ?>
                 <span class="comment-date"><?php comment_date('Y年m月d日'); ?></span>
             </div>
             <div class="comment-text">
