@@ -11,38 +11,36 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// ========== 每日定时重算 ==========
+// ========== 账本系统初始化 ==========
 
 /**
- * 注册每日凌晨重算贡献值的 Cron 任务
+ * 事件驱动贡献值 + 持久化账本 的版本号。
+ * 表结构或迁移逻辑变更时递增；版本不一致时会在 init 执行一次性迁移。
  */
-function boxmoe_contrib_cron_register($schedules) {
-    $schedules['daily_2am'] = [
-        'interval' => 86400,
-        'display'  => '每天凌晨2点',
-    ];
-    return $schedules;
-}
-add_filter('cron_schedules', 'boxmoe_contrib_cron_register');
+define('CONTRIB_LEDGER_VERSION', '1.0.0');
 
-function boxmoe_contrib_cron_activate() {
-    if (!wp_next_scheduled('boxmoe_contrib_daily_recalc')) {
-        wp_schedule_event(strtotime('tomorrow 02:00:00'), 'daily_2am', 'boxmoe_contrib_daily_recalc');
+/**
+ * 延迟迁移入口：确保账本表存在，并把历史内容标记为「已入账」。
+ * 迁移本身幂等，可重复执行；版本一致时直接跳过。
+ */
+add_action('init', 'boxmoe_contrib_maybe_migrate', 20);
+function boxmoe_contrib_maybe_migrate() {
+    if (get_option('boxmoe_contrib_ledger_db_version') === CONTRIB_LEDGER_VERSION) {
+        return;
+    }
+    boxmoe_contrib_migrate();
+}
+
+/**
+ * 旧的每日 02:00 全量重算任务已废弃（改为事件驱动增量入账）。
+ * 这里清理历史遗留的定时任务，避免线上继续触发。
+ */
+add_action('init', 'boxmoe_contrib_unschedule_legacy_cron', 21);
+function boxmoe_contrib_unschedule_legacy_cron() {
+    if (wp_next_scheduled('boxmoe_contrib_daily_recalc')) {
+        wp_clear_scheduled_hook('boxmoe_contrib_daily_recalc');
     }
 }
-add_action('init', 'boxmoe_contrib_cron_activate');
-
-function boxmoe_contrib_cron_deactivate() {
-    wp_clear_scheduled_hook('boxmoe_contrib_daily_recalc');
-}
-
-/**
- * Cron 回调：重算全站贡献值
- */
-function boxmoe_contrib_cron_handler() {
-    boxmoe_contrib_recalculate_all();
-}
-add_action('boxmoe_contrib_daily_recalc', 'boxmoe_contrib_cron_handler');
 
 // ========== 常量定义 ==========
 // 文章贡献基数
@@ -55,10 +53,22 @@ define('CONTRIB_COMMENT_MAKE', 2);        // 每发表评论贡献（评论者�
 // 说说折半系数
 define('CONTRIB_SHUOSHUO_RATIO', 0.5);
 
-// 用户 meta key
+// 用户 meta key（余额仍写这里，保持全站读取兼容）
 define('CONTRIB_META_KEY', 'boxmoe_contribution');
-define('CONTRIB_LOG_KEY', 'boxmoe_contribution_log');
-define('CONTRIB_LOG_MAX', 200);           // 日志最大保留条数
+define('CONTRIB_LOG_KEY', 'boxmoe_contribution_log'); // 旧数组日志 key，迁移后删除
+define('CONTRIB_LOG_MAX', 200);           // 已废弃，仅保留常量兼容
+
+// 事件幂等标记 / 增量基线（写 postmeta / commentmeta）
+define('CONTRIB_MARK_PUBLISH', '_boxmoe_contrib_publish_awarded');   // 文章基础分已发
+define('CONTRIB_MARK_VIEW_BASE', '_boxmoe_contrib_view_baseline');   // 已计入的浏览量基线
+define('CONTRIB_MARK_LIKE_BASE', '_boxmoe_contrib_like_baseline');   // 已计入的点赞数基线
+define('CONTRIB_MARK_COMMENT', '_boxmoe_contrib_awarded');           // 评论当前已入账
+define('CONTRIB_MARK_COMMENT_MAKE', '_boxmoe_contrib_make_amount');  // 评论者已入账分值
+define('CONTRIB_MARK_COMMENT_RECV', '_boxmoe_contrib_recv_amount');  // 作者已入账分值
+define('CONTRIB_MARK_COMMENT_MAKE_USER', '_boxmoe_contrib_make_user');
+define('CONTRIB_MARK_COMMENT_RECV_USER', '_boxmoe_contrib_recv_user');
+define('CONTRIB_MARK_COMMENT_APPROVE_SEQ', '_boxmoe_contrib_approve_seq');
+define('CONTRIB_MARK_COMMENT_REVOKE_SEQ', '_boxmoe_contrib_revoke_seq');
 
 // ========== 工具函数 ==========
 
@@ -91,7 +101,7 @@ function boxmoe_get_contrib_multiplier($post_id) {
 }
 
 /**
- * 获取用户贡献总值
+ * 获取用户贡献总值（余额仍存 wp_usermeta，全站读取保持兼容）
  */
 function boxmoe_get_contribution($user_id = null) {
     if (!$user_id) {
@@ -101,176 +111,900 @@ function boxmoe_get_contribution($user_id = null) {
     return (float) get_user_meta($user_id, CONTRIB_META_KEY, true);
 }
 
+// ========== 账本核心 ==========
+
 /**
- * 增加用户贡献值
+ * 账本表名
+ */
+function boxmoe_contrib_ledger_table() {
+    global $wpdb;
+    return $wpdb->prefix . 'boxmoe_contrib_ledger';
+}
+
+/**
+ * 创建 / 升级账本表（dbDelta，可重复执行）
+ */
+function boxmoe_contrib_ledger_install() {
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+    $table   = boxmoe_contrib_ledger_table();
+    $charset = $wpdb->get_charset_collate();
+    $sql = "CREATE TABLE $table (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        delta decimal(20,4) NOT NULL DEFAULT 0.0000,
+        reason varchar(190) NOT NULL DEFAULT '',
+        source varchar(32) NOT NULL DEFAULT '',
+        source_ref varchar(100) NOT NULL DEFAULT '',
+        post_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        created_at datetime NOT NULL,
+        PRIMARY KEY  (id),
+        KEY user_id (user_id,id),
+        UNIQUE KEY uniq_event (user_id,source,source_ref,reason)
+    ) $charset;";
+    dbDelta($sql);
+    return $table;
+}
+
+/**
+ * 账本表是否已存在
+ */
+function boxmoe_contrib_ledger_table_exists() {
+    global $wpdb;
+    $table = boxmoe_contrib_ledger_table();
+    return $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table))) === $table;
+}
+
+/**
+ * 原子增减余额（避免 read-modify-write 丢更新），并清理 user meta 缓存。
+ */
+function boxmoe_contrib_balance_add($user_id, $delta) {
+    global $wpdb;
+
+    $user_id = (int) $user_id;
+    $delta   = round((float) $delta, 4);
+    if ($user_id <= 0 || $delta == 0.0) return false;
+
+    $table = $wpdb->usermeta;
+    $wpdb->query('START TRANSACTION');
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT meta_value FROM $table WHERE user_id = %d AND meta_key = %s LIMIT 1 FOR UPDATE",
+        $user_id, CONTRIB_META_KEY
+    ));
+    if ($existing === null) {
+        $wpdb->insert($table, [
+            'user_id'    => $user_id,
+            'meta_key'   => CONTRIB_META_KEY,
+            'meta_value' => (string) $delta,
+        ], ['%d', '%s', '%s']);
+    } else {
+        $wpdb->query($wpdb->prepare(
+            "UPDATE $table SET meta_value = CAST(meta_value AS DECIMAL(24,4)) + %s
+             WHERE user_id = %d AND meta_key = %s",
+            (string) $delta, $user_id, CONTRIB_META_KEY
+        ));
+    }
+    $wpdb->query('COMMIT');
+
+    clean_user_cache($user_id);
+    wp_cache_delete($user_id, 'user_meta');
+    return true;
+}
+
+/**
+ * 直接设置余额（重建 / 修复工具专用），并清理缓存。
+ */
+function boxmoe_contrib_balance_set($user_id, $value) {
+    global $wpdb;
+
+    $user_id = (int) $user_id;
+    $value   = round((float) $value, 4);
+    if ($user_id <= 0) return false;
+
+    $existing = $wpdb->get_var($wpdb->prepare(
+        "SELECT meta_value FROM {$wpdb->usermeta} WHERE user_id = %d AND meta_key = %s LIMIT 1",
+        $user_id, CONTRIB_META_KEY
+    ));
+    if ($existing === null) {
+        $wpdb->insert($wpdb->usermeta, [
+            'user_id'    => $user_id,
+            'meta_key'   => CONTRIB_META_KEY,
+            'meta_value' => (string) $value,
+        ], ['%d', '%s', '%s']);
+    } else {
+        $wpdb->update(
+            $wpdb->usermeta,
+            ['meta_value' => (string) $value],
+            ['user_id' => $user_id, 'meta_key' => CONTRIB_META_KEY],
+            ['%s'],
+            ['%d', '%s']
+        );
+    }
+    clean_user_cache($user_id);
+    wp_cache_delete($user_id, 'user_meta');
+    return true;
+}
+
+/**
+ * 写入一条账本记录并同步余额。
+ *
+ * 幂等规则：唯一键 (user_id, source, source_ref, reason)
+ *  - $accumulate = false：重复事件被忽略（不重复入账）
+ *  - $accumulate = true ：同一唯一键累加（浏览按「用户+文章+天」聚合）
+ */
+function boxmoe_contrib_ledger_insert($user_id, $delta, $reason, $source, $source_ref, $post_id = 0, $accumulate = false) {
+    global $wpdb;
+
+    $user_id = (int) $user_id;
+    $delta   = round((float) $delta, 4);
+    if ($user_id <= 0 || $delta == 0.0) return false;
+
+    $table      = boxmoe_contrib_ledger_table();
+    $reason     = mb_substr((string) $reason, 0, 185);
+    $source     = mb_substr((string) $source, 0, 32);
+    $source_ref = mb_substr((string) $source_ref, 0, 100);
+    $post_id    = (int) $post_id;
+    $now        = current_time('mysql');
+
+    if ($accumulate) {
+        $affected = $wpdb->query($wpdb->prepare(
+            "INSERT INTO $table (user_id, delta, reason, source, source_ref, post_id, created_at)
+             VALUES (%d, %s, %s, %s, %s, %d, %s) AS new_ledger
+             ON DUPLICATE KEY UPDATE $table.delta = $table.delta + new_ledger.delta",
+            $user_id, (string) $delta, $reason, $source, $source_ref, $post_id, $now
+        ));
+    } else {
+        $affected = $wpdb->query($wpdb->prepare(
+            "INSERT IGNORE INTO $table (user_id, delta, reason, source, source_ref, post_id, created_at)
+             VALUES (%d, %s, %s, %s, %s, %d, %s)",
+            $user_id, (string) $delta, $reason, $source, $source_ref, $post_id, $now
+        ));
+    }
+
+    if (!$affected) return false; // 重复事件
+    boxmoe_contrib_balance_add($user_id, $delta);
+    return true;
+}
+
+/**
+ * 增加用户贡献值（保留原函数签名；现在写入账本 + 原子更新余额）
+ * 主要用于「管理员调整」这类非事件型变动。
  */
 function boxmoe_add_contribution($user_id, $amount, $reason = '', $post_id = 0) {
-    if (!$user_id || $amount == 0) return false;
+    $user_id = (int) $user_id;
+    $amount  = round((float) $amount, 4);
+    if ($user_id <= 0 || $amount == 0.0) return false;
 
-    $current = (float) get_user_meta($user_id, CONTRIB_META_KEY, true);
-    $new_value = round($current + $amount, 4);
-    update_user_meta($user_id, CONTRIB_META_KEY, $new_value);
+    $reason = $reason !== '' ? (string) $reason : '管理员手动调整';
+    $ref    = 'admin:' . current_time('YmdHis') . ':' . wp_generate_password(8, false);
+    boxmoe_contrib_ledger_insert($user_id, $amount, $reason, 'admin', $ref, $post_id, false);
 
-    // 记录日志
-    boxmoe_log_contribution($user_id, $amount, $reason, $post_id);
-
-    return $new_value;
+    return boxmoe_get_contribution($user_id);
 }
 
 /**
- * 记录贡献值变动日志
+ * @deprecated 旧接口，仅保留兼容：只写账本记录，不改余额。
  */
 function boxmoe_log_contribution($user_id, $amount, $reason = '', $post_id = 0) {
-    $log = get_user_meta($user_id, CONTRIB_LOG_KEY, true);
-    if (!is_array($log)) {
-        $log = array();
-    }
+    global $wpdb;
 
-    $entry = array(
-        'time'    => current_time('mysql'),
-        'amount'  => round($amount, 4),
-        'reason'  => $reason,
-        'post_id' => (int) $post_id,
-    );
+    $user_id = (int) $user_id;
+    $amount  = round((float) $amount, 4);
+    if ($user_id <= 0 || $amount == 0.0) return false;
+    if (!boxmoe_contrib_ledger_table_exists()) return false;
 
-    array_unshift($log, $entry);
-
-    // 限制日志条数
-    if (count($log) > CONTRIB_LOG_MAX) {
-        $log = array_slice($log, 0, CONTRIB_LOG_MAX);
-    }
-
-    update_user_meta($user_id, CONTRIB_LOG_KEY, $log);
+    $table = boxmoe_contrib_ledger_table();
+    $ref   = 'legacy:' . uniqid('', true);
+    return (bool) $wpdb->query($wpdb->prepare(
+        "INSERT IGNORE INTO $table (user_id, delta, reason, source, source_ref, post_id, created_at)
+         VALUES (%d, %s, %s, 'legacy', %s, %d, %s)",
+        $user_id, (string) $amount, mb_substr((string) $reason, 0, 185), $ref, (int) $post_id, current_time('mysql')
+    ));
 }
 
 /**
- * 获取贡献值变动历史
+ * 获取贡献值变动历史（读账本，保持旧返回结构：time/amount/reason/post_id）
  */
 function boxmoe_get_contribution_log($user_id = null, $limit = 20) {
     if (!$user_id) {
         $user_id = get_current_user_id();
     }
-    if (!$user_id) return array();
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) return array();
+    if (!boxmoe_contrib_ledger_table_exists()) return array();
 
-    $log = get_user_meta($user_id, CONTRIB_LOG_KEY, true);
-    if (!is_array($log)) return array();
+    global $wpdb;
+    $table = boxmoe_contrib_ledger_table();
+    $rows  = $wpdb->get_results($wpdb->prepare(
+        "SELECT delta, reason, post_id, created_at FROM $table
+         WHERE user_id = %d ORDER BY id DESC LIMIT %d",
+        $user_id, max(1, (int) $limit)
+    ));
 
-    return array_slice($log, 0, $limit);
+    $log = array();
+    foreach ((array) $rows as $row) {
+        $log[] = array(
+            'time'    => $row->created_at,
+            'amount'  => (float) $row->delta,
+            'reason'  => $row->reason,
+            'post_id' => (int) $row->post_id,
+        );
+    }
+    return $log;
 }
 
-// ========== 1. 每日统计重算 ==========
+/**
+ * 按 reason 聚合账本（用于「贡献构成」展示）
+ */
+function boxmoe_contrib_ledger_breakdown($user_id, $limit = 20) {
+    global $wpdb;
+
+    $user_id = (int) $user_id;
+    if ($user_id <= 0 || !boxmoe_contrib_ledger_table_exists()) return array();
+
+    $table = boxmoe_contrib_ledger_table();
+    $rows  = $wpdb->get_results($wpdb->prepare(
+        "SELECT reason, SUM(delta) AS total FROM $table
+         WHERE user_id = %d GROUP BY reason ORDER BY total DESC LIMIT %d",
+        $user_id, max(1, (int) $limit)
+    ));
+
+    $out = array();
+    foreach ((array) $rows as $row) {
+        $out[$row->reason] = (float) $row->total;
+    }
+    return $out;
+}
 
 /**
- * 全量重算贡献值（每日 cron 调用，也可在后台手动触发）
- * 基于文章、浏览、点赞、评论历史数据精确计算
- * 说说自动折半
+ * 账本合计（可按来源过滤），用于后台核对与重建
  */
-function boxmoe_contrib_recalculate_all() {
+function boxmoe_contrib_ledger_total($user_id = null, $source = null) {
     global $wpdb;
-    set_time_limit(300);
 
-    // 1. 备份管理员赋值记录（不清除）
-    $admin_logs = [];
-    $all_logs = $wpdb->get_results(
-        $wpdb->prepare("SELECT user_id, meta_value FROM $wpdb->usermeta WHERE meta_key = %s", CONTRIB_LOG_KEY)
-    );
-    foreach ($all_logs as $row) {
+    if (!boxmoe_contrib_ledger_table_exists()) return 0.0;
+    $table = boxmoe_contrib_ledger_table();
+
+    if ($user_id) {
+        if ($source !== null) {
+            return (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(delta),0) FROM $table WHERE user_id = %d AND source = %s",
+                (int) $user_id, (string) $source
+            ));
+        }
+        return (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(delta),0) FROM $table WHERE user_id = %d", (int) $user_id
+        ));
+    }
+
+    if ($source !== null) {
+        return (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(delta),0) FROM $table WHERE source = %s", (string) $source
+        ));
+    }
+    return (float) $wpdb->get_var("SELECT COALESCE(SUM(delta),0) FROM $table");
+}
+
+/**
+ * 当前所有用户余额快照（迁移/重建前后校验用）
+ */
+function boxmoe_contrib_balance_snapshot() {
+    global $wpdb;
+
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT user_id, meta_value FROM {$wpdb->usermeta} WHERE meta_key = %s", CONTRIB_META_KEY
+    ));
+    $users = array();
+    $sum   = 0.0;
+    foreach ((array) $rows as $row) {
+        $uid = (int) $row->user_id;
+        $users[$uid] = round((float) $row->meta_value, 4);
+        $sum += (float) $row->meta_value;
+    }
+    return array('sum' => round($sum, 4), 'users' => $users);
+}
+
+// ========== 1. 一次性迁移（幂等） ==========
+
+/**
+ * 迁移：建账本表 + 把历史内容标记为「已入账」+ 清理旧数组日志与旧 cron。
+ *
+ * 关键约束：
+ *  - 不改任何用户余额（迁移前后逐用户校验）；
+ *  - 重复执行直接 skip（版本号已写入）；中途失败下次请求可继续；
+ *  - 旧 usermeta 日志中的「管理员调整」导入账本（仅写账本，不改余额）。
+ */
+function boxmoe_contrib_migrate() {
+    global $wpdb;
+
+    if (get_option('boxmoe_contrib_ledger_db_version') === CONTRIB_LEDGER_VERSION) {
+        return ['skipped' => true];
+    }
+
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(300);
+    }
+
+    $before = boxmoe_contrib_balance_snapshot();
+    boxmoe_contrib_ledger_install();
+    if (!boxmoe_contrib_ledger_table_exists()) {
+        return ['error' => 'ledger_table_missing'];
+    }
+    $table = boxmoe_contrib_ledger_table();
+
+    $report = [
+        'version'              => CONTRIB_LEDGER_VERSION,
+        'time'                 => current_time('mysql'),
+        'balances_before'      => $before['users'],
+        'balances_before_sum'  => $before['sum'],
+        'imported_admin'       => 0,
+        'marked_posts'         => 0,
+        'marked_comments'      => 0,
+        'legacy_logs_removed'  => 0,
+        'cron_removed'         => false,
+    ];
+
+    // 1) 旧日志里的「管理员调整」导入账本（只写账本，余额已包含这部分，不重复加）
+    $legacy_logs = $wpdb->get_results($wpdb->prepare(
+        "SELECT user_id, meta_value FROM {$wpdb->usermeta} WHERE meta_key = %s", CONTRIB_LOG_KEY
+    ));
+    foreach ((array) $legacy_logs as $row) {
         $entries = maybe_unserialize($row->meta_value);
         if (!is_array($entries)) continue;
         foreach ($entries as $entry) {
-            $reason = isset($entry['reason']) ? $entry['reason'] : '';
-            if (strpos($reason, '管理员调整') === 0) {
-                if (!isset($admin_logs[$row->user_id])) $admin_logs[$row->user_id] = [];
-                $admin_logs[$row->user_id][] = $entry;
-            }
+            $reason = isset($entry['reason']) ? (string) $entry['reason'] : '';
+            if (strpos($reason, '管理员调整') !== 0) continue;
+            $amount = isset($entry['amount']) ? round((float) $entry['amount'], 4) : 0.0;
+            if ($amount == 0.0) continue;
+            $post_id = isset($entry['post_id']) ? (int) $entry['post_id'] : 0;
+            $time    = !empty($entry['time']) ? (string) $entry['time'] : current_time('mysql');
+            $ref     = 'legacy-admin:' . md5((int) $row->user_id . '|' . $time . '|' . $amount . '|' . $reason . '|' . $post_id);
+            $inserted = $wpdb->query($wpdb->prepare(
+                "INSERT IGNORE INTO $table (user_id, delta, reason, source, source_ref, post_id, created_at)
+                 VALUES (%d, %s, %s, 'admin', %s, %d, %s)",
+                (int) $row->user_id, (string) $amount, mb_substr($reason, 0, 185), $ref, $post_id, $time
+            ));
+            if ($inserted) $report['imported_admin']++;
         }
     }
 
-    // 2. 清空
-    $wpdb->delete($wpdb->usermeta, ['meta_key' => CONTRIB_META_KEY]);
-    $wpdb->delete($wpdb->usermeta, ['meta_key' => CONTRIB_LOG_KEY]);
+    // 2) 已发布文章：打「基础分已发」标记，并记录当前浏览/点赞基线（历史值视为已入账）
+    $post_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status = %s", 'post', 'publish'
+    ));
+    foreach ((array) $post_ids as $pid) {
+        $pid = (int) $pid;
+        update_post_meta($pid, CONTRIB_MARK_PUBLISH, 1);
+        if (get_post_meta($pid, CONTRIB_MARK_VIEW_BASE, true) === '') {
+            update_post_meta($pid, CONTRIB_MARK_VIEW_BASE, (int) get_post_meta($pid, 'post_views_count', true));
+        }
+        if (get_post_meta($pid, CONTRIB_MARK_LIKE_BASE, true) === '') {
+            update_post_meta($pid, CONTRIB_MARK_LIKE_BASE, (int) get_post_meta($pid, 'post_likes_count', true));
+        }
+        $report['marked_posts']++;
+    }
 
-    $stats = ['posts' => 0, 'shuoshuo' => 0, 'comments' => 0, 'views' => 0, 'likes' => 0, 'users' => []];
-
-    // 2. 一次性取出所有发布文章
-    $posts = $wpdb->get_results(
-        "SELECT ID, post_author FROM $wpdb->posts WHERE post_type = 'post' AND post_status = 'publish'"
+    // 3) 已审核评论：记录为「已入账」并保存当时分值（供后续取消审核冲正）
+    $comments = $wpdb->get_results(
+        "SELECT c.comment_ID, c.comment_post_ID, c.user_id, p.post_author
+         FROM {$wpdb->comments} c
+         JOIN {$wpdb->posts} p ON p.ID = c.comment_post_ID
+         WHERE c.comment_approved = '1' AND p.post_status = 'publish' AND p.post_type = 'post'"
     );
-    $shuoshuo_cat = get_category_by_slug('shuoshuo');
+    foreach ((array) $comments as $c) {
+        if (boxmoe_contrib_comment_mark_awarded((int) $c->comment_ID)) {
+            $report['marked_comments']++;
+        }
+    }
 
-    foreach ($posts as $p) {
+    // 4) 删除旧 usermeta 数组日志（内容已由标记/基线承接，管理员条目已导入账本）
+    $deleted = $wpdb->delete($wpdb->usermeta, ['meta_key' => CONTRIB_LOG_KEY]);
+    $report['legacy_logs_removed'] = $deleted ? (int) $deleted : 0;
+
+    // 5) 清理旧的每日重算 cron
+    if (wp_next_scheduled('boxmoe_contrib_daily_recalc')) {
+        wp_clear_scheduled_hook('boxmoe_contrib_daily_recalc');
+        $report['cron_removed'] = true;
+    }
+
+    // 6) 迁移前后余额校验（必须逐用户一致）
+    $after = boxmoe_contrib_balance_snapshot();
+    $report['balances_after']     = $after['users'];
+    $report['balances_after_sum'] = $after['sum'];
+    $report['balance_unchanged']  = true;
+    $uids = array_unique(array_merge(array_keys($before['users']), array_keys($after['users'])));
+    foreach ($uids as $uid) {
+        $b = sprintf('%.4f', round((float) ($before['users'][$uid] ?? 0), 4));
+        $a = sprintf('%.4f', round((float) ($after['users'][$uid] ?? 0), 4));
+        if ($b !== $a) {
+            $report['balance_unchanged'] = false;
+            $report['balance_mismatch'][] = ['user_id' => $uid, 'before' => $b, 'after' => $a];
+        }
+    }
+
+    // 7) 写版本号：重复执行会直接 skip
+    update_option('boxmoe_contrib_ledger_db_version', CONTRIB_LEDGER_VERSION, true);
+    update_option('boxmoe_contrib_migration_report', $report, false);
+
+    return $report;
+}
+
+// ========== 2. 内容事件：发布 / 浏览 / 点赞 ==========
+
+/**
+ * 文章首次发布：+20（说说 ×0.5），每篇只加一次。
+ */
+function boxmoe_contrib_award_publish($post) {
+    if (!$post instanceof WP_Post) return false;
+    $post_id = (int) $post->ID;
+    $uid     = (int) $post->post_author;
+    if ($post_id <= 0 || $uid <= 0) return false;
+    if (get_post_meta($post_id, CONTRIB_MARK_PUBLISH, true)) return false;
+
+    $mult   = boxmoe_get_contrib_multiplier($post_id);
+    $is_shu = $mult < 1;
+    $ok = boxmoe_contrib_ledger_insert(
+        $uid,
+        CONTRIB_ARTICLE_BASE * $mult,
+        $is_shu ? '发布说说' : '发布文章',
+        'publish',
+        'post:' . $post_id,
+        $post_id,
+        false
+    );
+
+    // 新文章从 0 起算浏览/点赞，避免把历史计数重复入账
+    if (get_post_meta($post_id, CONTRIB_MARK_VIEW_BASE, true) === '') {
+        update_post_meta($post_id, CONTRIB_MARK_VIEW_BASE, (int) get_post_meta($post_id, 'post_views_count', true));
+    }
+    if (get_post_meta($post_id, CONTRIB_MARK_LIKE_BASE, true) === '') {
+        update_post_meta($post_id, CONTRIB_MARK_LIKE_BASE, (int) get_post_meta($post_id, 'post_likes_count', true));
+    }
+    update_post_meta($post_id, CONTRIB_MARK_PUBLISH, 1);
+
+    return $ok;
+}
+
+add_action('transition_post_status', 'boxmoe_contrib_on_post_status', 10, 3);
+function boxmoe_contrib_on_post_status($new_status, $old_status, $post) {
+    if (!$post instanceof WP_Post || $post->post_type !== 'post') return;
+    if ($new_status !== 'publish' || $old_status === 'publish') return;
+    boxmoe_contrib_award_publish($post);
+}
+
+/**
+ * 文章浏览：按浏览量增量入账，0.05/次（说说 ×0.5）。
+ * 账本按「用户 + 文章 + 天」聚合成一行。
+ */
+function boxmoe_contrib_on_post_viewed($post_id) {
+    $post_id = (int) $post_id;
+    $post    = get_post($post_id);
+    if (!$post || $post->post_type !== 'post' || $post->post_status !== 'publish') return;
+    $uid = (int) $post->post_author;
+    if ($uid <= 0) return;
+
+    $views = (int) get_post_meta($post_id, 'post_views_count', true);
+    $base  = get_post_meta($post_id, CONTRIB_MARK_VIEW_BASE, true);
+    if ($base === '') {
+        // 无基线（例如刚清理过标记）：以当前值为基线，不回灌历史浏览量
+        update_post_meta($post_id, CONTRIB_MARK_VIEW_BASE, $views);
+        return;
+    }
+    $delta_views = $views - (int) $base;
+    if ($delta_views <= 0) return;
+
+    $mult   = boxmoe_get_contrib_multiplier($post_id);
+    $amount = CONTRIB_ARTICLE_VIEW * $mult * $delta_views;
+
+    boxmoe_contrib_ledger_insert(
+        $uid,
+        $amount,
+        '文章浏览',
+        'view',
+        'post:' . $post_id . ':view:' . current_time('Y-m-d'),
+        $post_id,
+        true
+    );
+    update_post_meta($post_id, CONTRIB_MARK_VIEW_BASE, $views);
+}
+add_action('boxmoe_post_viewed', 'boxmoe_contrib_on_post_viewed', 10, 1);
+
+/**
+ * 文章被点赞：+2/赞（说说 ×0.5）给作者；已有 transient 去重保持不变。
+ */
+function boxmoe_contrib_on_post_liked($post_id, $count = null) {
+    $post_id = (int) $post_id;
+    $post    = get_post($post_id);
+    if (!$post || $post->post_type !== 'post' || $post->post_status !== 'publish') return;
+    $uid = (int) $post->post_author;
+    if ($uid <= 0) return;
+
+    $count = ($count === null) ? (int) get_post_meta($post_id, 'post_likes_count', true) : (int) $count;
+    $base  = get_post_meta($post_id, CONTRIB_MARK_LIKE_BASE, true);
+    if ($base === '') {
+        update_post_meta($post_id, CONTRIB_MARK_LIKE_BASE, $count);
+        return;
+    }
+    $delta_likes = $count - (int) $base;
+    if ($delta_likes <= 0) return;
+
+    $mult   = boxmoe_get_contrib_multiplier($post_id);
+    $amount = CONTRIB_ARTICLE_LIKE * $mult * $delta_likes;
+
+    boxmoe_contrib_ledger_insert(
+        $uid,
+        $amount,
+        '文章被点赞',
+        'like',
+        'post:' . $post_id . ':like:' . $count,
+        $post_id,
+        false
+    );
+    update_post_meta($post_id, CONTRIB_MARK_LIKE_BASE, $count);
+}
+add_action('boxmoe_post_liked', 'boxmoe_contrib_on_post_liked', 10, 2);
+
+// ========== 3. 内容事件：评论审核通过 / 取消 ==========
+
+/**
+ * 已审核评论标记为「已入账」（仅打标记 + 记录分值，不写账本、不改余额）。
+ * 迁移时对历史评论使用；返回是否新写入。
+ */
+function boxmoe_contrib_comment_mark_awarded($comment_id) {
+    $comment_id = (int) $comment_id;
+    $comment    = get_comment($comment_id);
+    if (!$comment || (string) $comment->comment_approved !== '1') return false;
+    $post = get_post($comment->comment_post_ID);
+    if (!$post || $post->post_status !== 'publish' || $post->post_type !== 'post') return false;
+    if (get_comment_meta($comment_id, CONTRIB_MARK_COMMENT, true)) return false;
+
+    $mult     = boxmoe_get_contrib_multiplier((int) $comment->comment_post_ID);
+    $commenter = (int) $comment->user_id;
+    $author    = (int) $post->post_author;
+    $make      = ($commenter > 0) ? CONTRIB_COMMENT_MAKE * $mult : 0.0;
+    $recv      = ($author > 0 && $author !== $commenter) ? CONTRIB_ARTICLE_COMMENTED * $mult : 0.0;
+
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT, 1);
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_MAKE, $make);
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_RECV, $recv);
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_MAKE_USER, $commenter);
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_RECV_USER, ($recv > 0) ? $author : 0);
+    return true;
+}
+
+/**
+ * 评论审核通过：评论者 +2、作者 +3（说说 ×0.5，自评除外）。
+ * 幂等：同一评论已入账时不重复加（重新通过时按新序列号入账）。
+ */
+function boxmoe_contrib_award_comment($comment_id) {
+    $comment_id = (int) $comment_id;
+    $comment    = get_comment($comment_id);
+    if (!$comment || (string) $comment->comment_approved !== '1') return false;
+    $post = get_post($comment->comment_post_ID);
+    if (!$post || $post->post_status !== 'publish' || $post->post_type !== 'post') return false;
+    if (get_comment_meta($comment_id, CONTRIB_MARK_COMMENT, true)) return false;
+
+    $post_id   = (int) $comment->comment_post_ID;
+    $commenter = (int) $comment->user_id;
+    $author    = (int) $post->post_author;
+    $mult      = boxmoe_get_contrib_multiplier($post_id);
+    $is_shu    = $mult < 1;
+    $seq       = (int) get_comment_meta($comment_id, CONTRIB_MARK_COMMENT_APPROVE_SEQ, true) + 1;
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_APPROVE_SEQ, $seq);
+
+    $make = 0.0;
+    $recv = 0.0;
+
+    if ($commenter > 0) {
+        $make = CONTRIB_COMMENT_MAKE * $mult;
+        boxmoe_contrib_ledger_insert(
+            $commenter,
+            $make,
+            $is_shu ? '评论说说' : '发表评论',
+            'comment_make',
+            'comment:' . $comment_id . ':a' . $seq,
+            $post_id,
+            false
+        );
+    }
+    if ($author > 0 && $author !== $commenter) {
+        $recv = CONTRIB_ARTICLE_COMMENTED * $mult;
+        boxmoe_contrib_ledger_insert(
+            $author,
+            $recv,
+            '文章收到评论',
+            'comment_recv',
+            'comment:' . $comment_id . ':a' . $seq,
+            $post_id,
+            false
+        );
+    }
+
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT, 1);
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_MAKE, $make);
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_RECV, $recv);
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_MAKE_USER, $commenter);
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_RECV_USER, ($recv > 0) ? $author : 0);
+    return true;
+}
+
+/**
+ * 评论取消审核 / 删除 / 垃圾：冲正已入账分值（只冲一次）。
+ */
+function boxmoe_contrib_revoke_comment($comment_id, $comment = null) {
+    $comment_id = (int) $comment_id;
+    if ($comment_id <= 0) return false;
+    if (!get_comment_meta($comment_id, CONTRIB_MARK_COMMENT, true)) return false;
+
+    $make      = (float) get_comment_meta($comment_id, CONTRIB_MARK_COMMENT_MAKE, true);
+    $recv      = (float) get_comment_meta($comment_id, CONTRIB_MARK_COMMENT_RECV, true);
+    $make_user = (int) get_comment_meta($comment_id, CONTRIB_MARK_COMMENT_MAKE_USER, true);
+    $recv_user = (int) get_comment_meta($comment_id, CONTRIB_MARK_COMMENT_RECV_USER, true);
+    $seq       = (int) get_comment_meta($comment_id, CONTRIB_MARK_COMMENT_REVOKE_SEQ, true) + 1;
+    update_comment_meta($comment_id, CONTRIB_MARK_COMMENT_REVOKE_SEQ, $seq);
+
+    if (!$comment) {
+        $comment = get_comment($comment_id);
+    }
+    $post_id = $comment ? (int) $comment->comment_post_ID : 0;
+    if (!$post_id) {
+        $post_id = (int) get_comment_meta($comment_id, '_boxmoe_contrib_post_id', true);
+    }
+
+    if ($make > 0 && $make_user > 0) {
+        boxmoe_contrib_ledger_insert(
+            $make_user, -$make, '评论取消审核', 'comment_revoke',
+            'comment:' . $comment_id . ':r' . $seq, $post_id, false
+        );
+    }
+    if ($recv > 0 && $recv_user > 0) {
+        boxmoe_contrib_ledger_insert(
+            $recv_user, -$recv, '评论取消审核', 'comment_revoke',
+            'comment:' . $comment_id . ':r' . $seq, $post_id, false
+        );
+    }
+
+    delete_comment_meta($comment_id, CONTRIB_MARK_COMMENT);
+    delete_comment_meta($comment_id, CONTRIB_MARK_COMMENT_MAKE);
+    delete_comment_meta($comment_id, CONTRIB_MARK_COMMENT_RECV);
+    delete_comment_meta($comment_id, CONTRIB_MARK_COMMENT_MAKE_USER);
+    delete_comment_meta($comment_id, CONTRIB_MARK_COMMENT_RECV_USER);
+    return true;
+}
+
+add_action('comment_post', 'boxmoe_contrib_on_comment_post', 10, 2);
+function boxmoe_contrib_on_comment_post($comment_id, $approved = 1) {
+    if ((string) $approved !== '1') return;
+    boxmoe_contrib_award_comment($comment_id);
+}
+
+add_action('transition_comment_status', 'boxmoe_contrib_on_comment_transition', 10, 3);
+function boxmoe_contrib_on_comment_transition($new_status, $old_status, $comment) {
+    if (!$comment instanceof WP_Comment) return;
+    if ($new_status === 'approved') {
+        boxmoe_contrib_award_comment($comment->comment_ID);
+    } elseif ($old_status === 'approved') {
+        boxmoe_contrib_revoke_comment($comment->comment_ID, $comment);
+    }
+}
+
+add_action('trashed_comment', 'boxmoe_contrib_on_comment_trashed', 10, 2);
+function boxmoe_contrib_on_comment_trashed($comment_id, $comment) {
+    boxmoe_contrib_revoke_comment($comment_id, $comment);
+}
+
+add_action('spammed_comment', 'boxmoe_contrib_on_comment_spammed', 10, 2);
+function boxmoe_contrib_on_comment_spammed($comment_id, $comment) {
+    boxmoe_contrib_revoke_comment($comment_id, $comment);
+}
+
+add_action('delete_comment', 'boxmoe_contrib_on_comment_deleted', 10, 2);
+function boxmoe_contrib_on_comment_deleted($comment_id, $comment) {
+    boxmoe_contrib_revoke_comment($comment_id, $comment);
+}
+
+add_action('untrashed_comment', 'boxmoe_contrib_on_comment_untrashed', 10, 2);
+function boxmoe_contrib_on_comment_untrashed($comment_id, $comment) {
+    if ($comment && (string) $comment->comment_approved === '1') {
+        boxmoe_contrib_award_comment($comment_id);
+    }
+}
+
+add_action('unspammed_comment', 'boxmoe_contrib_on_comment_unspammed', 10, 2);
+function boxmoe_contrib_on_comment_unspammed($comment_id, $comment) {
+    if ($comment && (string) $comment->comment_approved === '1') {
+        boxmoe_contrib_award_comment($comment_id);
+    }
+}
+
+// ========== 4. 修复工具：按内容重建余额（保留管理员调整） ==========
+
+/**
+ * 按当前内容（发布 + 浏览 + 点赞 + 已审核评论）计算每个用户应得的内容贡献。
+ */
+function boxmoe_contrib_compute_content_totals() {
+    global $wpdb;
+
+    $shuoshuo_cat = get_category_by_slug('shuoshuo');
+    $totals = array();
+    $stats  = array('posts' => 0, 'shuoshuo' => 0, 'comments' => 0, 'views' => 0, 'likes' => 0);
+
+    $posts = $wpdb->get_results(
+        "SELECT ID, post_author FROM {$wpdb->posts} WHERE post_type = 'post' AND post_status = 'publish'"
+    );
+    foreach ((array) $posts as $p) {
         $pid = (int) $p->ID;
         $uid = (int) $p->post_author;
         if (!$uid) continue;
 
-        $is_shuoshuo = $shuoshuo_cat && has_category($shuoshuo_cat->term_id, $pid);
-        $mult = $is_shuoshuo ? CONTRIB_SHUOSHUO_RATIO : 1.0;
+        $is_shu = $shuoshuo_cat && has_category($shuoshuo_cat->term_id, $pid);
+        $mult   = $is_shu ? CONTRIB_SHUOSHUO_RATIO : 1.0;
+        $views  = (int) get_post_meta($pid, 'post_views_count', true);
+        $likes  = (int) get_post_meta($pid, 'post_likes_count', true);
 
-        $stats['users'][$uid] = true;
-        if ($is_shuoshuo) $stats['shuoshuo']++; else $stats['posts']++;
+        if (!isset($totals[$uid])) $totals[$uid] = 0.0;
+        $totals[$uid] += CONTRIB_ARTICLE_BASE * $mult;
+        $totals[$uid] += CONTRIB_ARTICLE_VIEW * $mult * $views;
+        $totals[$uid] += CONTRIB_ARTICLE_LIKE * $mult * $likes;
 
-        // 发布基础分
-        boxmoe_add_contribution($uid, CONTRIB_ARTICLE_BASE * $mult, $is_shuoshuo ? '发布说说' : '发布文章', $pid);
-
-        // 浏览贡献
-        $views = (int) get_post_meta($pid, 'post_views_count', true);
-        if ($views > 0) {
-            boxmoe_add_contribution($uid, CONTRIB_ARTICLE_VIEW * $mult * $views, '文章浏览', $pid);
-            $stats['views'] += $views;
-        }
-
-        // 点赞贡献
-        $likes = (int) get_post_meta($pid, 'post_likes_count', true);
-        if ($likes > 0) {
-            boxmoe_add_contribution($uid, CONTRIB_ARTICLE_LIKE * $mult * $likes, '文章被点赞', $pid);
-            $stats['likes'] += $likes;
-        }
+        if ($is_shu) $stats['shuoshuo']++; else $stats['posts']++;
+        $stats['views'] += $views;
+        $stats['likes'] += $likes;
     }
 
-    // 3. 评论贡献（批量查）
     $comments = $wpdb->get_results(
         "SELECT c.comment_ID, c.comment_post_ID, c.user_id, p.post_author
-         FROM $wpdb->comments c
-         JOIN $wpdb->posts p ON p.ID = c.comment_post_ID
-         WHERE c.comment_approved = '1' AND p.post_status = 'publish'"
+         FROM {$wpdb->comments} c
+         JOIN {$wpdb->posts} p ON p.ID = c.comment_post_ID
+         WHERE c.comment_approved = '1' AND p.post_status = 'publish' AND p.post_type = 'post'"
     );
-    foreach ($comments as $c) {
-        $cid     = (int) $c->comment_post_ID;
+    foreach ((array) $comments as $c) {
+        $pid       = (int) $c->comment_post_ID;
         $commenter = (int) $c->user_id;
-        $author  = (int) $c->post_author;
+        $author    = (int) $c->post_author;
         if (!$author) continue;
+        $is_shu = $shuoshuo_cat && has_category($shuoshuo_cat->term_id, $pid);
+        $mult   = $is_shu ? CONTRIB_SHUOSHUO_RATIO : 1.0;
 
-        $is_s = $shuoshuo_cat && has_category($shuoshuo_cat->term_id, $cid);
-        $mult = $is_s ? CONTRIB_SHUOSHUO_RATIO : 1.0;
-
-        // 文章作者得被评论分（自评除外）
         if ($commenter !== $author) {
-            boxmoe_add_contribution($author, CONTRIB_ARTICLE_COMMENTED * $mult, '文章收到评论', $cid);
-            $stats['users'][$author] = true;
+            if (!isset($totals[$author])) $totals[$author] = 0.0;
+            $totals[$author] += CONTRIB_ARTICLE_COMMENTED * $mult;
         }
-        // 评论者得分
         if ($commenter) {
-            boxmoe_add_contribution($commenter, CONTRIB_COMMENT_MAKE * $mult, $is_s ? '评论说说' : '发表评论', $cid);
-            $stats['users'][$commenter] = true;
+            if (!isset($totals[$commenter])) $totals[$commenter] = 0.0;
+            $totals[$commenter] += CONTRIB_COMMENT_MAKE * $mult;
         }
         $stats['comments']++;
     }
 
-    // 4. 恢复管理员赋值记录
-    if (!empty($admin_logs)) {
-        foreach ($admin_logs as $uid => $entries) {
-            foreach ($entries as $entry) {
-                boxmoe_add_contribution(
-                    $uid,
-                    $entry['amount'],
-                    $entry['reason'],
-                    isset($entry['post_id']) ? $entry['post_id'] : 0
-                );
-            }
-        }
+    foreach ($totals as $uid => $v) {
+        $totals[$uid] = round($v, 4);
+    }
+    return array('totals' => $totals, 'stats' => $stats);
+}
+
+/**
+ * 修复工具：按内容重建余额（保留管理员调整）。
+ * 会清空内容类账本、重置全部事件标记与基线，然后写回余额。
+ */
+function boxmoe_contrib_rebuild_all() {
+    global $wpdb;
+
+    boxmoe_contrib_ledger_install();
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(300);
+    }
+    $table = boxmoe_contrib_ledger_table();
+
+    $computed = boxmoe_contrib_compute_content_totals();
+    $content  = $computed['totals'];
+    $stats    = $computed['stats'];
+
+    // 管理员调整合计（重建前读取，重建后保留）
+    $admin = array();
+    foreach ((array) $wpdb->get_results("SELECT user_id, SUM(delta) AS total FROM $table WHERE source = 'admin' GROUP BY user_id") as $row) {
+        $admin[(int) $row->user_id] = (float) $row->total;
     }
 
-    return $stats;
+    // 1) 清掉内容类账本（保留 admin / legacy）
+    $wpdb->query("DELETE FROM $table WHERE source IN ('publish','view','like','comment_make','comment_recv','comment_revoke')");
+
+    // 2) 重置全部事件标记 / 基线
+    $wpdb->query($wpdb->prepare(
+        "DELETE FROM {$wpdb->postmeta} WHERE meta_key IN (%s, %s, %s)",
+        CONTRIB_MARK_PUBLISH, CONTRIB_MARK_VIEW_BASE, CONTRIB_MARK_LIKE_BASE
+    ));
+    $wpdb->query($wpdb->prepare(
+        "DELETE FROM {$wpdb->commentmeta} WHERE meta_key IN (%s, %s, %s, %s, %s, %s, %s)",
+        CONTRIB_MARK_COMMENT, CONTRIB_MARK_COMMENT_MAKE, CONTRIB_MARK_COMMENT_RECV,
+        CONTRIB_MARK_COMMENT_MAKE_USER, CONTRIB_MARK_COMMENT_RECV_USER,
+        CONTRIB_MARK_COMMENT_APPROVE_SEQ, CONTRIB_MARK_COMMENT_REVOKE_SEQ
+    ));
+
+    // 3) 按当前内容重写标记与基线（之后新事件继续增量入账）
+    $post_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status = %s", 'post', 'publish'
+    ));
+    foreach ((array) $post_ids as $pid) {
+        $pid = (int) $pid;
+        update_post_meta($pid, CONTRIB_MARK_PUBLISH, 1);
+        update_post_meta($pid, CONTRIB_MARK_VIEW_BASE, (int) get_post_meta($pid, 'post_views_count', true));
+        update_post_meta($pid, CONTRIB_MARK_LIKE_BASE, (int) get_post_meta($pid, 'post_likes_count', true));
+    }
+    $comments = $wpdb->get_results(
+        "SELECT c.comment_ID FROM {$wpdb->comments} c
+         JOIN {$wpdb->posts} p ON p.ID = c.comment_post_ID
+         WHERE c.comment_approved = '1' AND p.post_status = 'publish' AND p.post_type = 'post'"
+    );
+    foreach ((array) $comments as $c) {
+        boxmoe_contrib_comment_mark_awarded((int) $c->comment_ID);
+    }
+
+    // 4) 写回余额 = 内容分 + 管理员调整
+    $existing = $wpdb->get_col($wpdb->prepare(
+        "SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s", CONTRIB_META_KEY
+    ));
+    $uids = array_unique(array_merge(array_map('intval', (array) $existing), array_keys($content), array_keys($admin)));
+    foreach ($uids as $uid) {
+        $uid = (int) $uid;
+        if ($uid <= 0) continue;
+        boxmoe_contrib_balance_set($uid, ($content[$uid] ?? 0) + ($admin[$uid] ?? 0));
+    }
+
+    wp_cache_flush();
+    return array_merge($stats, array('users' => count($uids)));
+}
+
+/**
+ * 「清空全部贡献值」：账本 + 标记 + 基线 + 余额一起清空（不可恢复）。
+ */
+function boxmoe_contrib_clear_all() {
+    global $wpdb;
+
+    $table = boxmoe_contrib_ledger_table();
+    if (boxmoe_contrib_ledger_table_exists()) {
+        $wpdb->query("DELETE FROM $table");
+    }
+    $wpdb->delete($wpdb->usermeta, ['meta_key' => CONTRIB_META_KEY]);
+    $wpdb->query($wpdb->prepare(
+        "DELETE FROM {$wpdb->postmeta} WHERE meta_key IN (%s, %s, %s)",
+        CONTRIB_MARK_PUBLISH, CONTRIB_MARK_VIEW_BASE, CONTRIB_MARK_LIKE_BASE
+    ));
+    $wpdb->query($wpdb->prepare(
+        "DELETE FROM {$wpdb->commentmeta} WHERE meta_key IN (%s, %s, %s, %s, %s, %s, %s)",
+        CONTRIB_MARK_COMMENT, CONTRIB_MARK_COMMENT_MAKE, CONTRIB_MARK_COMMENT_RECV,
+        CONTRIB_MARK_COMMENT_MAKE_USER, CONTRIB_MARK_COMMENT_RECV_USER,
+        CONTRIB_MARK_COMMENT_APPROVE_SEQ, CONTRIB_MARK_COMMENT_REVOKE_SEQ
+    ));
+    wp_cache_flush();
+    return true;
+}
+
+/**
+ * 分页读取某用户账本（后台用户详情页）
+ */
+function boxmoe_contrib_ledger_page($user_id, $per_page = 30, $paged = 1) {
+    global $wpdb;
+
+    $user_id  = (int) $user_id;
+    $per_page = max(1, (int) $per_page);
+    $paged    = max(1, (int) $paged);
+    $offset   = ($paged - 1) * $per_page;
+    if ($user_id <= 0 || !boxmoe_contrib_ledger_table_exists()) {
+        return array('total' => 0, 'rows' => array());
+    }
+
+    $table = boxmoe_contrib_ledger_table();
+    $total = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM $table WHERE user_id = %d", $user_id
+    ));
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT id, delta, reason, source, source_ref, post_id, created_at
+         FROM $table WHERE user_id = %d ORDER BY id DESC LIMIT %d OFFSET %d",
+        $user_id, $per_page, $offset
+    ));
+    return array('total' => $total, 'rows' => (array) $rows);
 }
 
 // ========== 5. 工具：手动修正贡献值（管理员专用） ==========
@@ -469,16 +1203,20 @@ function boxmoe_contrib_admin_page() {
         echo '<div class="notice notice-success is-dismissible"><p>已成功调整 <strong>' . esc_html($adj_name) . '</strong> 的贡献值。</p></div>';
     }
 
-    // 显示重算结果
-    if (isset($_GET['recalculated'])) {
+    // 显示「按内容重建余额」结果
+    if (isset($_GET['rebuilt'])) {
         $rc = $_GET;
         $msg = sprintf(
-            '重算完成！共处理 <strong>%d</strong> 篇文章、<strong>%d</strong> 篇说说、<strong>%d</strong> 条评论。',
+            '重建完成！按当前内容重算：<strong>%d</strong> 篇文章、<strong>%d</strong> 篇说说、<strong>%d</strong> 条评论、<strong>%d</strong> 次浏览。已保留管理员调整，事件标记与基线已重置。',
             (int)($rc['posts'] ?? 0),
             (int)($rc['shuoshuo'] ?? 0),
-            (int)($rc['comments'] ?? 0)
+            (int)($rc['comments'] ?? 0),
+            (int)($rc['views'] ?? 0)
         );
         echo '<div class="notice notice-success is-dismissible"><p>' . $msg . '</p></div>';
+    }
+    if (isset($_GET['cleared'])) {
+        echo '<div class="notice notice-warning is-dismissible"><p>已清空全站贡献值：余额、账本、事件标记与基线均已清空（不可恢复）。</p></div>';
     }
 
     $paged = max(1, isset($_GET['cp']) ? (int)$_GET['cp'] : 1);
@@ -512,22 +1250,14 @@ function boxmoe_contrib_admin_page() {
     ));
     $total_contrib = $total_contrib ?: 0;
 
-    // 扣除管理员赋值部分（从日志中统计）
-    $admin_contrib = 0;
-    $log_rows = $wpdb->get_results($wpdb->prepare(
-        "SELECT user_id, meta_value FROM $wpdb->usermeta WHERE meta_key = %s",
-        CONTRIB_LOG_KEY
-    ));
-    foreach ($log_rows as $lr) {
-        $entries = maybe_unserialize($lr->meta_value);
-        if (!is_array($entries)) continue;
-        foreach ($entries as $e) {
-            if (isset($e['reason']) && strpos($e['reason'], '管理员调整') === 0) {
-                $admin_contrib += (float)$e['amount'];
-            }
-        }
+    // 管理员调整部分（读账本 source=admin）
+    $admin_contrib = 0.0;
+    if (boxmoe_contrib_ledger_table_exists()) {
+        $ledger_table  = boxmoe_contrib_ledger_table();
+        $admin_contrib = (float) $wpdb->get_var("SELECT COALESCE(SUM(delta),0) FROM $ledger_table WHERE source = 'admin'");
     }
     $display_contrib = max(0, $total_contrib - $admin_contrib);
+    $ledger_contrib  = boxmoe_contrib_ledger_total();
 
     // 有贡献值的用户数
     $active_contributors = $wpdb->get_var($wpdb->prepare(
@@ -547,15 +1277,15 @@ function boxmoe_contrib_admin_page() {
     <div class="wrap contrib-wrap">
         <div class="contrib-header">
             <h1>贡献值管理</h1>
-            <form method="post" style="margin-left:auto;" onsubmit="return confirm('确定重新统计所有用户的贡献值？\n\n这将清空现有数据并根据所有文章、浏览、点赞、评论重新计算。');">
-                <?php wp_nonce_field('boxmoe_contrib_recalc', '_recalc_nonce'); ?>
+            <form method="post" style="margin-left:auto;" onsubmit="return confirm('按当前内容重建所有用户余额？\n\n会用文章/浏览/点赞/评论重新计算内容分，保留管理员调整，并重置事件标记与基线；之后新事件继续增量入账。\n一般只在账实不符时使用。');">
+                <?php wp_nonce_field('boxmoe_contrib_rebuild', '_rebuild_nonce'); ?>
                 <input type="hidden" name="page" value="boxmoe-contribution">
-                <button type="submit" name="contrib_recalc_submit" class="button button-secondary">
-                    重新统计
+                <button type="submit" name="contrib_rebuild_submit" class="button button-secondary">
+                    按内容重建余额
                 </button>
             </form>
             <form method="post" style="display:inline;margin-left:8px;"
-                  onsubmit="return confirm('确定清空全站所有用户的贡献值？\n\n贡献值将归零，日志将被清空。\n等级标签不受影响。\n此操作不可恢复！');">
+                  onsubmit="return confirm('确定清空全站所有用户的贡献值？\n\n将同时清空：余额、账本记录、事件标记与基线。\n等级标签不受影响。\n此操作不可恢复！');">
                 <?php wp_nonce_field('boxmoe_contrib_clearall', '_clearall_nonce'); ?>
                 <input type="hidden" name="page" value="boxmoe-contribution">
                 <button type="submit" name="contrib_clearall_submit" class="button button-small" style="color:#dc3232;border-color:#dc3232;">
@@ -569,7 +1299,7 @@ function boxmoe_contrib_admin_page() {
             <div class="contrib-stat-card">
                 <div class="stat-label">总贡献值</div>
                 <div class="stat-value"><?php echo number_format($display_contrib, 2); ?></div>
-                <div class="stat-sub">全站累计（不含管理员赋值）</div>
+                <div class="stat-sub">不含管理员调整；总余额 <?php echo number_format($total_contrib, 2); ?>（调整 <?php echo number_format($admin_contrib, 2); ?>）</div>
             </div>
             <div class="contrib-stat-card">
                 <div class="stat-label">用户总数</div>
@@ -733,13 +1463,13 @@ function boxmoe_contrib_admin_page() {
                         <td>发布内容</td>
                         <td><strong>+20</strong></td>
                         <td><strong>+10</strong></td>
-                        <td>文章首次发布时一次性获得</td>
+                        <td>文章首次发布时一次性入账（事件驱动，幂等）</td>
                     </tr>
                     <tr>
                         <td>浏览</td>
                         <td><strong>+0.05</strong></td>
                         <td><strong>+0.025</strong></td>
-                        <td>每IP每10分钟每文章限计1次，作者自览不计</td>
+                        <td>按浏览量增量实时入账；账本按「用户+文章+天」聚合一行</td>
                     </tr>
                     <tr>
                         <td>被点赞</td>
@@ -767,7 +1497,7 @@ function boxmoe_contrib_admin_page() {
                 </tbody>
             </table>
             <p style="padding:12px 16px; margin:0; background:#f8fafc; color:#64748b; font-size:12px;">
-                说说 = 分类为「shuoshuo」的文章，所有贡献值折半。&nbsp;
+                说说 = 分类为「shuoshuo」的文章，所有贡献值折半。每次变动都会写入持久化账本，可在用户详情页分页查看。&nbsp;
                 <a href="<?php echo admin_url('admin.php?page=boxmoe-contrib-tags'); ?>">查看等级与Tag规则 →</a>
             </p>
         </div>
@@ -802,22 +1532,23 @@ function boxmoe_contrib_handle_adjust() {
 /**
  * 重新统计所有贡献值
  */
-add_action('admin_init', 'boxmoe_contrib_handle_recalc');
-function boxmoe_contrib_handle_recalc() {
-    if (!isset($_POST['contrib_recalc_submit'])) return;
+add_action('admin_init', 'boxmoe_contrib_handle_rebuild');
+function boxmoe_contrib_handle_rebuild() {
+    if (!isset($_POST['contrib_rebuild_submit'])) return;
     if (!current_user_can('manage_options')) return;
-    if (!wp_verify_nonce($_POST['_recalc_nonce'] ?? '', 'boxmoe_contrib_recalc')) {
+    if (!wp_verify_nonce($_POST['_rebuild_nonce'] ?? '', 'boxmoe_contrib_rebuild')) {
         wp_die('安全验证失败，请刷新页面重试。');
     }
 
-    $stats = boxmoe_contrib_recalculate_all();
+    $stats = boxmoe_contrib_rebuild_all();
 
     $query = http_build_query([
-        'page'         => 'boxmoe-contribution',
-        'recalculated' => '1',
-        'posts'        => $stats['posts'],
-        'shuoshuo'     => $stats['shuoshuo'],
-        'comments'     => $stats['comments'],
+        'page'     => 'boxmoe-contribution',
+        'rebuilt'  => '1',
+        'posts'    => $stats['posts'] ?? 0,
+        'shuoshuo' => $stats['shuoshuo'] ?? 0,
+        'comments' => $stats['comments'] ?? 0,
+        'views'    => $stats['views'] ?? 0,
     ]);
     wp_redirect(admin_url('admin.php?' . $query));
     exit;
@@ -834,14 +1565,8 @@ function boxmoe_contrib_handle_clearall() {
         wp_die('安全验证失败');
     }
 
-    global $wpdb;
-    // 清空贡献日志
-    $wpdb->delete($wpdb->usermeta, ['meta_key' => 'boxmoe_contribution_log']);
-    // 贡献值归零（保留 tag）
-    $wpdb->query($wpdb->prepare(
-        "UPDATE $wpdb->usermeta SET meta_value = '0' WHERE meta_key = %s",
-        'boxmoe_contribution'
-    ));
+    // 账本 + 余额 + 事件标记/基线 一起清空
+    boxmoe_contrib_clear_all();
 
     wp_redirect(admin_url('admin.php?page=boxmoe-contribution&cleared=1'));
     exit;
@@ -868,29 +1593,29 @@ function boxmoe_contrib_user_detail_page() {
     }
 
     $contribution = boxmoe_get_contribution($user_id);
-    $log = boxmoe_get_contribution_log($user_id, 50);
 
-    // 贡献来源统计
-    $breakdown = array(
-        '发布文章'   => 0,
-        '发布说说'   => 0,
-        '文章浏览'   => 0,
-        '文章被点赞' => 0,
-        '文章收到评论' => 0,
-        '发表评论'   => 0,
-        '评论说说'   => 0,
-    );
-    $other_total = 0;
-    foreach ($log as $idx => $entry) {
-        $reason = $entry['reason'];
-        if (isset($breakdown[$reason])) {
-            $breakdown[$reason] += $entry['amount'];
-        } else {
-            $other_total += $entry['amount'];
-        }
+    // 账本分页（不再有 200 条上限）
+    $ledger_per_page = 30;
+    $ledger_paged    = max(1, isset($_GET['lp']) ? (int) $_GET['lp'] : 1);
+    $ledger_page     = boxmoe_contrib_ledger_page($user_id, $ledger_per_page, $ledger_paged);
+    $ledger_total    = (int) $ledger_page['total'];
+    $ledger_pages    = (int) ceil($ledger_total / $ledger_per_page);
+    $log = array();
+    foreach ($ledger_page['rows'] as $row) {
+        $log[] = array(
+            'id'      => (int) $row->id,
+            'time'    => $row->created_at,
+            'amount'  => (float) $row->delta,
+            'reason'  => $row->reason,
+            'post_id' => (int) $row->post_id,
+            'source'  => $row->source,
+        );
     }
-    if ($other_total != 0) {
-        $breakdown['其他调整'] = $other_total;
+
+    // 贡献构成（按 reason 聚合账本）；迁移后尚无新事件时用历史基线兜底展示
+    $breakdown = boxmoe_contrib_ledger_breakdown($user_id, 30);
+    if (empty($breakdown) && $contribution != 0) {
+        $breakdown = array('历史贡献（迁移基线）' => $contribution);
     }
     ?>
     <div class="wrap contrib-wrap">
@@ -967,12 +1692,13 @@ function boxmoe_contrib_user_detail_page() {
             <div>
                 <div class="postbox" style="border-radius:10px; overflow:hidden;">
                     <div class="postbox-header" style="display:flex;align-items:center;justify-content:space-between;">
-                        <h2 style="padding:8px 12px;margin:0;font-size:15px;">近期变动记录</h2>
+                        <h2 style="padding:8px 12px;margin:0;font-size:15px;">账本记录 <span style="color:#94a3b8;font-weight:400;font-size:12px;">共 <?php echo (int) $ledger_total; ?> 条</span></h2>
                         <button id="clear-all-log" class="button button-small" style="color:#dc3232;border-color:#dc3232;margin-right:8px;">清空全部记录</button>
                     </div>
                     <div class="inside" style="margin:0; padding:0; max-height:420px; overflow-y:auto;">
+                        <p style="margin:8px 12px 0;color:#94a3b8;font-size:12px;">记录仅用于展示，删除记录不会改变当前余额。</p>
                         <?php if (empty($log)): ?>
-                            <p style="text-align:center;color:#94a3b8;padding:30px;">暂无变动记录</p>
+                            <p style="text-align:center;color:#94a3b8;padding:30px;">暂无账本记录</p>
                         <?php else: ?>
                         <ul class="contrib-log-list">
                             <?php foreach ($log as $entry):
@@ -1022,10 +1748,26 @@ function boxmoe_contrib_user_detail_page() {
                                 <div class="contrib-log-amount <?php echo $is_positive ? 'contrib-change-plus' : 'contrib-change-minus'; ?>">
                                     <?php echo $is_positive ? '+' : ''; ?><?php echo number_format($entry['amount'], 2); ?>
                                 </div>
-                                <button class="contrib-log-delete" data-idx="<?php echo $idx; ?>" data-user="<?php echo $user_id; ?>" title="删除此记录" style="background:none;border:none;color:#ef4444;cursor:pointer;padding:2px 6px;font-size:14px;opacity:0.6;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">&times;</button>
+                                <button class="contrib-log-delete" data-ledger="<?php echo (int) $entry['id']; ?>" data-user="<?php echo (int) $user_id; ?>" title="删除此记录" style="background:none;border:none;color:#ef4444;cursor:pointer;padding:2px 6px;font-size:14px;opacity:0.6;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">&times;</button>
                             </li>
                             <?php endforeach; ?>
                         </ul>
+                        <?php if ($ledger_pages > 1): ?>
+                        <div class="tablenav" style="padding:8px 12px;">
+                            <div class="tablenav-pages">
+                                <span class="displaying-num">第 <?php echo (int) $ledger_paged; ?>/<?php echo (int) $ledger_pages; ?> 页</span>
+                                <span class="pagination-links">
+                                    <?php
+                                    $lp_base = admin_url('admin.php?page=boxmoe-contrib-user&user_id=' . $user_id . '&lp=%#%');
+                                    echo paginate_links([
+                                        'base' => $lp_base, 'format' => '', 'current' => $ledger_paged,
+                                        'total' => $ledger_pages, 'prev_text' => '&laquo;', 'next_text' => '&raquo;',
+                                    ]);
+                                    ?>
+                                </span>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -1034,16 +1776,18 @@ function boxmoe_contrib_user_detail_page() {
     </div>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 清空全部
+        var ledgerNonce = <?php echo wp_json_encode(wp_create_nonce('boxmoe_contrib_ledger')); ?>;
+        // 清空全部（只删记录，不改余额）
         var clearBtn = document.getElementById('clear-all-log');
         if (clearBtn) {
             clearBtn.addEventListener('click', function() {
-                if (!confirm('确定清空该用户全部贡献记录？贡献值将归零，不可恢复！')) return;
+                if (!confirm('确定清空该用户全部账本记录？\n\n只删除记录，不会改变当前余额。')) return;
                 this.disabled = true;
                 this.textContent = '清空中...';
                 var formData = new FormData();
                 formData.append('action', 'boxmoe_clear_contrib_log');
-                formData.append('user_id', <?php echo $user_id; ?>);
+                formData.append('user_id', <?php echo (int) $user_id; ?>);
+                formData.append('nonce', ledgerNonce);
                 fetch(ajaxurl, { method: 'POST', credentials: 'same-origin', body: formData })
                     .then(function(r) { return r.json(); })
                     .then(function(res) {
@@ -1053,19 +1797,19 @@ function boxmoe_contrib_user_detail_page() {
                     .catch(function() { alert('请求失败'); });
             });
         }
-        // 删除单条
+        // 删除单条（只删记录，不改余额）
         document.querySelectorAll('.contrib-log-delete').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                if (!confirm('确定删除此记录？将同时扣回对应贡献值。')) return;
-                var idx = this.getAttribute('data-idx');
+                if (!confirm('确定删除此记录？\n\n只删除记录，不会改变当前余额。')) return;
+                var ledgerId = this.getAttribute('data-ledger');
                 var uid = this.getAttribute('data-user');
                 this.disabled = true;
                 this.textContent = '...';
-                var li = this.closest('li');
                 var formData = new FormData();
                 formData.append('action', 'boxmoe_delete_contrib_log');
                 formData.append('user_id', uid);
-                formData.append('idx', idx);
+                formData.append('ledger_id', ledgerId);
+                formData.append('nonce', ledgerNonce);
                 fetch(ajaxurl, { method: 'POST', credentials: 'same-origin', body: formData })
                     .then(function(r) { return r.json(); })
                     .then(function(res) {
@@ -1151,31 +1895,30 @@ function boxmoe_contrib_user_selector_page() {
     <?php
 }
 
-// ========== 8. 删除贡献日志 ==========
+// ========== 8. 账本记录删除（只删记录，不改余额） ==========
 
 add_action('wp_ajax_boxmoe_delete_contrib_log', 'boxmoe_ajax_delete_contrib_log');
 function boxmoe_ajax_delete_contrib_log() {
     if (!current_user_can('manage_options')) {
         wp_send_json_error(['message' => '无权限']);
     }
-    $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
-    $idx     = isset($_POST['idx']) ? intval($_POST['idx']) : -1;
-    if (!$user_id || $idx < 0) {
+    check_ajax_referer('boxmoe_contrib_ledger', 'nonce');
+
+    global $wpdb;
+    $user_id   = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
+    $ledger_id = isset($_POST['ledger_id']) ? (int) $_POST['ledger_id'] : 0;
+    if ($user_id <= 0 || $ledger_id <= 0) {
         wp_send_json_error(['message' => '参数错误']);
     }
-    $log = get_user_meta($user_id, 'boxmoe_contribution_log', true);
-    if (!is_array($log) || !isset($log[$idx])) {
+    if (!boxmoe_contrib_ledger_table_exists()) {
+        wp_send_json_error(['message' => '账本表不存在']);
+    }
+    $table   = boxmoe_contrib_ledger_table();
+    $deleted = $wpdb->delete($table, ['id' => $ledger_id, 'user_id' => $user_id], ['%d', '%d']);
+    if (!$deleted) {
         wp_send_json_error(['message' => '记录不存在']);
     }
-    $entry = $log[$idx];
-    // 扣回贡献值
-    $current = boxmoe_get_contribution($user_id);
-    update_user_meta($user_id, 'boxmoe_contribution', max(0, $current - $entry['amount']));
-    // 删除该条记录（重建索引）
-    array_splice($log, $idx, 1);
-    $log = array_values($log);
-    update_user_meta($user_id, 'boxmoe_contribution_log', $log);
-    wp_send_json_success(['message' => '已删除']);
+    wp_send_json_success(['message' => '已删除记录（余额未变）']);
 }
 
 add_action('wp_ajax_boxmoe_clear_contrib_log', 'boxmoe_ajax_clear_contrib_log');
@@ -1183,13 +1926,19 @@ function boxmoe_ajax_clear_contrib_log() {
     if (!current_user_can('manage_options')) {
         wp_send_json_error(['message' => '无权限']);
     }
-    $user_id = isset($_POST['user_id']) ? intval($_POST['user_id']) : 0;
-    if (!$user_id) {
+    check_ajax_referer('boxmoe_contrib_ledger', 'nonce');
+
+    global $wpdb;
+    $user_id = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
+    if ($user_id <= 0) {
         wp_send_json_error(['message' => '参数错误']);
     }
-    delete_user_meta($user_id, 'boxmoe_contribution_log');
-    update_user_meta($user_id, 'boxmoe_contribution', 0);
-    wp_send_json_success(['message' => '已清空']);
+    if (!boxmoe_contrib_ledger_table_exists()) {
+        wp_send_json_error(['message' => '账本表不存在']);
+    }
+    $table = boxmoe_contrib_ledger_table();
+    $wpdb->delete($table, ['user_id' => $user_id], ['%d']);
+    wp_send_json_success(['message' => '已清空记录（余额未变）']);
 }
 
 // ========== 9. 等级与Tag系统 ==========

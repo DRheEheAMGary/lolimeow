@@ -32,22 +32,13 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                     <div class="widget widget-contribution" style="background:transparent;box-shadow:none;">
                         <div class="widget-title"><i class="fa fa-star"></i> 贡献值</div>
                         <?php
-                        $all_log = boxmoe_get_contribution_log($profile_user_id, 200);
-                        $sys_reasons = array('发布文章', '文章浏览', '文章被点赞', '文章收到评论', '发表评论', '评论说说', '发布说说');
-                        $breakdown = array();
-                        foreach ($sys_reasons as $r) $breakdown[$r] = 0;
-                        if (!empty($all_log)):
-                            foreach ($all_log as $entry):
-                                $reason = $entry['reason'];
-                                if (in_array($reason, $sys_reasons)) {
-                                    if (!isset($breakdown[$reason])) $breakdown[$reason] = 0;
-                                    $breakdown[$reason] += $entry['amount'];
-                                } else {
-                                    if (!isset($breakdown['管理员赋值'])) $breakdown['管理员赋值'] = 0;
-                                    $breakdown['管理员赋值'] += $entry['amount'];
-                                }
-                            endforeach;
-                        endif;
+                        // 贡献构成直接读账本聚合（不再受旧 usermeta 日志 200 条上限影响）
+                        $breakdown = function_exists('boxmoe_contrib_ledger_breakdown')
+                            ? boxmoe_contrib_ledger_breakdown($profile_user_id, 30)
+                            : array();
+                        if (empty($breakdown) && boxmoe_get_contribution($profile_user_id) != 0) {
+                            $breakdown = array('历史贡献（迁移基线）' => boxmoe_get_contribution($profile_user_id));
+                        }
                         ?>
                         <div class="text-center py-2">
                             <?php
