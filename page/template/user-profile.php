@@ -106,6 +106,7 @@ if ($show_masked) {
             <div class="col">
                 <h2 class="mb-1" style="font-size:1.5rem;">
                     <?php if ($show_masked): ?>封禁用户<?php else: ?><?php echo esc_html($profile_user->display_name); ?><?php endif; ?>
+                    <?php if ($show_masked): ?><?php else: ?><?php echo boxmoe_get_sso_tag_badge($user_id); ?><?php endif; ?>
                     <?php if (!empty($profile_user->user_url)): ?>
                     <a href="<?php echo esc_url($profile_user->user_url); ?>" target="_blank"
                        class="text-muted ms-2" title="个人网站" style="font-size:0.9rem;">
@@ -369,7 +370,7 @@ if ($show_masked) {
                                 </span>
                             </div>
                             <span class="list-post-author">
-                                <i class="fa fa-at"></i><?php the_author(); ?>
+                                <i class="fa fa-at"></i><?php the_author(); ?><?php echo boxmoe_get_sso_tag_badge(get_the_author_meta('ID')); ?>
                                 <span class="dot"></span><?php echo get_the_time('Y-m-d'); ?>
                             </span>
                         </div>
@@ -417,7 +418,7 @@ if ($show_masked) {
                 <div class="shuoshuo-card-body">
                     <div class="shuoshuo-meta-top">
                         <span class="shuoshuo-author">
-                            <i class="fa fa-at"></i><?php echo esc_html($profile_user->display_name); ?>
+                            <i class="fa fa-at"></i><?php echo esc_html($profile_user->display_name); ?><?php echo boxmoe_get_sso_tag_badge($user_id); ?>
                         </span>
                         <span class="shuoshuo-dot"></span>
                         <span class="shuoshuo-time"><?php echo get_the_time('m-d H:i'); ?></span>
@@ -488,6 +489,9 @@ if ($show_masked) {
                             }
                             ?>
                         </span>
+                        <?php if ($comment->user_id): ?>
+                            <?php echo boxmoe_get_sso_tag_badge($comment->user_id); ?>
+                        <?php endif; ?>
                         <span class="comment-date"><?php comment_date('Y年m月d日'); ?></span>
                     </div>
                     <div class="comment-text">
@@ -617,7 +621,7 @@ if ($show_masked) {
                                     </span>
                                 </div>
                                 <span class="list-post-author">
-                                    <i class="fa fa-at"></i><?php the_author(); ?>
+                                    <i class="fa fa-at"></i><?php the_author(); ?><?php echo boxmoe_get_sso_tag_badge(get_the_author_meta('ID')); ?>
                                     <span class="dot"></span><?php echo get_the_time('Y-m-d'); ?>
                                 </span>
                             </div>
@@ -673,6 +677,7 @@ if ($show_masked) {
                     </a>
                     <div class="flex-fill">
                         <a href="<?php echo esc_url(boxmoe_get_user_profile_url($fuid)); ?>" class="fw-semibold text-reset text-decoration-none"><?php echo esc_html($fu->display_name); ?></a>
+                        <?php if (function_exists('boxmoe_get_sso_tag_badge')) echo boxmoe_get_sso_tag_badge($fuid); ?>
                         <div class="small text-muted"><?php echo esc_html(get_user_meta($fuid, 'description', true)); ?></div>
                     </div>
                 </div>
@@ -705,6 +710,7 @@ if ($show_masked) {
                     </a>
                     <div class="flex-fill">
                         <a href="<?php echo esc_url(boxmoe_get_user_profile_url($fuid)); ?>" class="fw-semibold text-reset text-decoration-none"><?php echo esc_html($fu->display_name); ?></a>
+                        <?php if (function_exists('boxmoe_get_sso_tag_badge')) echo boxmoe_get_sso_tag_badge($fuid); ?>
                         <div class="small text-muted"><?php echo esc_html(get_user_meta($fuid, 'description', true)); ?></div>
                     </div>
                 </div>

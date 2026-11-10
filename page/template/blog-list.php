@@ -22,7 +22,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
             <div class="shuoshuo-card-body">
                 <div class="shuoshuo-meta-top">
                     <span class="shuoshuo-author">
-                        <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a>
+                        <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a><?php echo boxmoe_get_sso_tag_badge(get_the_author_meta('ID')); ?>
                     </span>
                     <span class="shuoshuo-dot"></span>
                     <span class="shuoshuo-time"><?php echo get_the_time('m-d H:i'); ?></span>
@@ -92,7 +92,7 @@ if(!defined('ABSPATH')){echo'Look your sister';exit;}
                             </span>
                         </div>
                         <span class="list-post-author">
-                            <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a>
+                            <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a><?php echo boxmoe_get_sso_tag_badge(get_the_author_meta('ID')); ?>
                             <span class="dot"></span><?php echo get_the_time('Y-m-d'); ?>
                         </span>
                     </div>

@@ -1,0 +1,71 @@
+/* ---------------------------------------------------------------------------
+ * SSO Tag 徽章（只读，样式由 SSO 下发；与贡献值/等级无关）
+ *
+ * 结构：.sso-tag-badge（外层：边框 + 填充）
+ *         └ .sso-tag-label（内层：文字 / 文字渐变）
+ * 样式通过 CSS 变量注入，变量值在 PHP 侧已严格校验为 hex。
+ * ------------------------------------------------------------------------- */
+
+.sso-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--sso-tag-border, #d7dbe3);
+  background-color: var(--sso-tag-fill, #eef1f6);
+  color: var(--sso-tag-text, var(--bs-gray-900, #2b2f36));
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  vertical-align: middle;
+  white-space: nowrap;
+  max-width: 14em;
+  overflow: hidden;
+}
+
+.sso-tag-badge .sso-tag-label {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: inherit;
+}
+
+/* 填充渐变：外层 wrapper 用 background-image（与文字渐变互不冲突）
+ * 2–4 个色标由 PHP 拼成完整 linear-gradient 后写入 --sso-tag-fill-image。 */
+.sso-tag-badge.has-fill-gradient {
+  background-image: var(--sso-tag-fill-image, linear-gradient(90deg, #8b3dff, #d87cff));
+}
+
+/* 文字渐变：内层 span 用 background-clip:text；先保留 color 作降级 */
+.sso-tag-label.has-text-gradient {
+  color: var(--sso-tag-text, inherit);
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .sso-tag-label.has-text-gradient {
+    background-image: var(--sso-tag-text-image, linear-gradient(90deg, #8b3dff, #d87cff));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* 深色模式：无自定义样式时可读的默认值（有自定义值仍以 SSO 下发为准） */
+[data-bs-theme="dark"] .sso-tag-badge {
+  border-color: var(--sso-tag-border, rgba(255, 255, 255, 0.24));
+  background-color: var(--sso-tag-fill, rgba(255, 255, 255, 0.10));
+  color: var(--sso-tag-text, #fff);
+}
+
+/* 小屏下与用户名同排时不撑破布局 */
+@media (max-width: 575.98px) {
+  .sso-tag-badge {
+    max-width: 9em;
+    margin-left: 4px;
+    font-size: 11px;
+    padding: 0 6px;
+  }
+}

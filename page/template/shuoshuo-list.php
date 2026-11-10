@@ -47,7 +47,7 @@ $shuoshuo_query = new WP_Query($args);
             <div class="post-list-content" style="padding:15px 10px 15px 5px;">
                 <div class="post-meta-info" style="margin-bottom:8px;">
                     <span class="list-post-author" style="font-size:0.85rem;font-weight:600;">
-                        <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a>
+                        <i class="fa fa-at"></i><a href="<?php echo boxmoe_get_user_profile_url(get_the_author_meta('ID')); ?>" style="color:inherit;text-decoration:none;"><?php the_author(); ?></a><?php echo boxmoe_get_sso_tag_badge(get_the_author_meta('ID')); ?>
                         <span class="dot"></span>
                         <?php 
                         $post_time = get_the_time('U');

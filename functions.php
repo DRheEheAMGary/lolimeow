@@ -22,6 +22,7 @@ require_once  get_stylesheet_directory() . '/core/module/fun-basis.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-admin.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-optimize.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-gravatar.php';
+require_once  get_stylesheet_directory() . '/core/module/fun-sso-tag.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-navwalker.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-user.php';
 require_once  get_stylesheet_directory() . '/core/module/fun-user-center.php';
