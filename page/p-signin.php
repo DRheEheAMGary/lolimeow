@@ -56,7 +56,7 @@ if (is_user_logged_in()){
                   <?php if (function_exists('sso_native_login_disabled') && sso_native_login_disabled()): ?>
                   <style>#loginform{display:none !important}</style>
                   <p class="text-center text-muted mb-4">
-                     账号与登录说明：<a href="<?php echo esc_url(home_url('/migrate/')); ?>" class="sso-migrate-link">点击查看</a>
+                     从 WordPress 账号迁移？<a href="<?php echo esc_url(home_url('/migrate/')); ?>" class="sso-migrate-link">点击此处了解…</a>
                   </p>
                   <?php endif; ?>
                   <form class="needs-validation mb-6" action="" method="post" id="loginform" novalidate>
