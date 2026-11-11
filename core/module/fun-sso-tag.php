@@ -3,7 +3,7 @@
  * SSO Tag 徽章（只读展示）
  *
  * 数据来源：mu-plugins/tag-sync.php 写入 user meta `boxmoe_sso_tag`（label + 可选 style）。
- * 与贡献值系统无关：没有任何贡献值/等级逻辑，只按 SSO 下发的 label + 样式渲染。
+ * 只按 SSO 下发的 label + 样式渲染，不依赖其它模块。
  *
  * @package lolimeow
  */

@@ -44,13 +44,17 @@ if (is_user_logged_in()){
                   <div class="text-center text-muted small mb-3">
                      推荐用统一认证一键注册，账号自动打通全站
                      <hr class="my-3">
+                     <?php if (function_exists('sso_register_disabled') && sso_register_disabled()): ?>
+                     使用上方「DRheEheAM 账号」一键注册
+                     <?php else: ?>
                      或使用站内账号注册
+                     <?php endif; ?>
                   </div>
                   <?php endif; ?>
                   <?php if (function_exists('sso_register_disabled') && sso_register_disabled()): ?>
                   <style>#signupform{display:none !important}</style>
                   <p class="text-center text-muted mb-4">
-                     站内自助注册已关闭，请使用上方「DRheEheAM 账号」一键注册
+                     本站账号通过「DRheEheAM 账号」注册，请使用上方一键注册
                   </p>
                   <?php endif; ?>
                   <form class="needs-validation mb-6" id="signupform" novalidate="">
@@ -103,7 +107,7 @@ if (is_user_logged_in()){
                         </form>
                   <div class="text-center mt-7">
                      <div class="small mb-3 mb-lg-0 text-body-tertiary">
-                        Copyright © 2025 
+                        Copyright © <?php echo esc_html(date_i18n('Y')); ?>
                         <span class="text-primary"><a href="<?php echo get_option('home'); ?>"><?php echo get_bloginfo('name'); ?></a></span>
                         | Theme by
                         <span class="text-primary"><a href="https://www.boxmoe.com">Boxmoe</a></span> powered by WordPress

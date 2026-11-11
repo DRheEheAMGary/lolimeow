@@ -1047,7 +1047,7 @@ footer .logo {height:35px;}
 [data-bs-theme="dark"] .shuoshuo-post .shuoshuo-stat {color: #999;}
 [data-bs-theme="dark"] .shuoshuo-post .shuoshuo-stat:hover {color: #ccc;}
 
-/* ====== 旧版兼容删除 ====== */
+/* ====== 兼容样式 ====== */
 
 /* ====== 卡片底部操作栏 ====== */
 .timeline-card-footer {display: flex;align-items: center;justify-content: space-between;flex-wrap: wrap;padding: 10px 20px 14px;border-top: 1px solid #f0f0f0;gap: 8px;}

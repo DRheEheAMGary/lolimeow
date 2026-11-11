@@ -202,8 +202,8 @@ function boxmoe_avatar_frame_attrs($user_id, $size) {
 /**
  * 主题统一头像输出。
  *
- * 以前模板直接拼 <img>，导致头像框只能覆盖 get_avatar()，覆盖不到主题的
- * 20 多个直接调用点。所有头像都从这里输出后，框才有唯一入口。
+ * 主题模板统一通过 boxmoe_avatar_img() 输出头像，头像框因此能覆盖所有
+ * 调用点，并有唯一入口。
  *
  * 参数：
  *   $id_or_email  用户 ID / 邮箱 / 评论对象
@@ -293,8 +293,8 @@ function boxmoe_avatar_img($id_or_email, $size = 100, $args = array()) {
 /**
  * get_avatar() 过滤器：核心/插件调用也走统一头像输出。
  *
- * 主题自己的模板不再依赖这个过滤器，但评论区、成员列表等 get_avatar()
- * 调用点仍然会经过这里。
+ * 主题自己的模板通过 boxmoe_avatar_img() 输出；评论区、成员列表等
+ * get_avatar() 调用点会经过这里。
  */
 function boxmoe_get_avatar($avatar, $id_or_email, $size = 96, $default = '', $alt = '', $args = array()) {
     $class = isset($args['class'])

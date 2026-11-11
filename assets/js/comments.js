@@ -277,7 +277,7 @@ function initCommentToolbar() {
         insertBtn.addEventListener('click', () => {
             const code = codeInput.value.trim();
             if(code) {
-                // 修改为WordPress兼容的pre+code标签格式
+                // 生成 WordPress 兼容的 pre+code 标签格式
                 const codeBlock = `\n<pre><code class="language-">\n${code}\n</code></pre>\n`;
                 insertAtBoxmoe(commentTextarea, codeBlock);
                 codeInput.value = '';

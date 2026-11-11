@@ -56,7 +56,7 @@ if (is_user_logged_in()){
                   <?php if (function_exists('sso_native_login_disabled') && sso_native_login_disabled()): ?>
                   <style>#loginform{display:none !important}</style>
                   <p class="text-center text-muted mb-4">
-                     从 WordPress 账号迁移？<a href="<?php echo esc_url(home_url('/migrate/')); ?>" class="sso-migrate-link">点击此处了解…</a>
+                     账号与登录说明：<a href="<?php echo esc_url(home_url('/migrate/')); ?>" class="sso-migrate-link">点击查看</a>
                   </p>
                   <?php endif; ?>
                   <form class="needs-validation mb-6" action="" method="post" id="loginform" novalidate>
@@ -100,7 +100,7 @@ if (is_user_logged_in()){
                   </form>
                   <div class="text-center mt-7">
                      <div class="small mb-3 mb-lg-0 text-body-tertiary">
-                        Copyright © 2025 
+                        Copyright © <?php echo esc_html(date_i18n('Y')); ?>
                         <span class="text-primary"><a href="<?php echo get_option('home'); ?>"><?php echo get_bloginfo('name'); ?></a></span>
                         | Theme by
                         <span class="text-primary"><a href="https://www.boxmoe.com">Boxmoe</a></span> powered by WordPress

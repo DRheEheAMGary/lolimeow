@@ -101,7 +101,7 @@ $last_login_ip = get_user_meta($user_id, 'last_login_ip', true) ?: '暂无记录
                     你的账号由 <strong>DRheEheAM 统一认证</strong> 管理，
                     密码与邮箱请前往
                     <a href="https://sso.dreamgary.cn/account/" target="_blank" rel="noopener" class="alert-link">账号中心</a>
-                    修改，本站不再单独保存。
+                    修改。
                 </div>
             </div>
 
